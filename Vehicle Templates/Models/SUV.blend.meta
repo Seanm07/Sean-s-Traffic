@@ -1,0 +1,161 @@
+fileFormatVersion: 2
+guid: 09b3b366c8572994684be7990f14ceaf
+timeCreated: 1494842323
+licenseType: Pro
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: SUV_Left
+    100004: SUV_Right
+    100006: SUV_Wheel_Front_L
+    100008: SUV_Wheel_Front_R
+    100010: SUV_Wheel_Rear_L
+    100012: SUV_Wheel_Rear_R
+    100014: SUV_Blue_Left
+    100016: SUV_Blue_Right
+    100018: SUV_Green_Left
+    100020: SUV_Green_Right
+    100022: SUV_Pink_Left
+    100024: SUV_Pink_Right_
+    100026: SUV_White_Left
+    100028: SUV_White_Right
+    100030: Hazard_Lights
+    100032: SUV_Pink_Right
+    400000: //RootNode
+    400002: SUV_Left
+    400004: SUV_Right
+    400006: SUV_Wheel_Front_L
+    400008: SUV_Wheel_Front_R
+    400010: SUV_Wheel_Rear_L
+    400012: SUV_Wheel_Rear_R
+    400014: SUV_Blue_Left
+    400016: SUV_Blue_Right
+    400018: SUV_Green_Left
+    400020: SUV_Green_Right
+    400022: SUV_Pink_Left
+    400024: SUV_Pink_Right_
+    400026: SUV_White_Left
+    400028: SUV_White_Right
+    400030: Hazard_Lights
+    400032: SUV_Pink_Right
+    2300000: SUV_Left
+    2300002: SUV_Right
+    2300004: SUV_Wheel_Front_L
+    2300006: SUV_Wheel_Front_R
+    2300008: SUV_Wheel_Rear_L
+    2300010: SUV_Wheel_Rear_R
+    2300012: SUV_Blue_Left
+    2300014: SUV_Blue_Right
+    2300016: SUV_Green_Left
+    2300018: SUV_Green_Right
+    2300020: SUV_Pink_Left
+    2300022: SUV_Pink_Right_
+    2300024: SUV_White_Left
+    2300026: SUV_White_Right
+    2300028: Hazard_Lights
+    2300030: SUV_Pink_Right
+    3300000: SUV_Left
+    3300002: SUV_Right
+    3300004: SUV_Wheel_Front_L
+    3300006: SUV_Wheel_Front_R
+    3300008: SUV_Wheel_Rear_L
+    3300010: SUV_Wheel_Rear_R
+    3300012: SUV_Blue_Left
+    3300014: SUV_Blue_Right
+    3300016: SUV_Green_Left
+    3300018: SUV_Green_Right
+    3300020: SUV_Pink_Left
+    3300022: SUV_Pink_Right_
+    3300024: SUV_White_Left
+    3300026: SUV_White_Right
+    3300028: Hazard_Lights
+    3300030: SUV_Pink_Right
+    4300000: SUV_Right
+    4300002: SUV_Left
+    4300004: SUV_Wheel_Rear_L
+    4300006: SUV_Wheel_Front_R
+    4300008: SUV_Wheel_Front_L
+    4300010: SUV_Wheel_Rear_R
+    4300012: SUV_Pink_Left
+    4300014: SUV_Green_Left
+    4300016: SUV_Blue_Left
+    4300018: SUV_White_Left
+    4300020: SUV_Pink_Right_
+    4300022: SUV_Green_Right
+    4300024: SUV_Blue_Right
+    4300026: SUV_White_Right
+    4300028: SUV_Pink_Right
+    4300030: Hazard_Lights
+    7400000: Default Take
+    9500000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 2
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

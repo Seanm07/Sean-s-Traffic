@@ -1,0 +1,156 @@
+fileFormatVersion: 2
+guid: 7972cb6248984b147936f5f2fa5428ac
+timeCreated: 1494844933
+licenseType: Pro
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: Coupe_Left
+    100004: Coupe_Right
+    100006: Coupe_Wheel_Front_L
+    100008: Coupe_Wheel_Front_R
+    100010: Coupe_Wheel_Rear_L
+    100012: Coupe_Wheel_Rear_R
+    100014: Coupe_Blue_Left
+    100016: Coupe_Blue_Right
+    100018: Coupe_Gray_Left
+    100020: Coupe_Gray_Right
+    100022: Coupe_Green_Left
+    100024: Coupe_Green_Right
+    100026: Coupe_Red_Left
+    100028: Coupe_Red_Right
+    100030: Hazard_Lights
+    400000: //RootNode
+    400002: Coupe_Left
+    400004: Coupe_Right
+    400006: Coupe_Wheel_Front_L
+    400008: Coupe_Wheel_Front_R
+    400010: Coupe_Wheel_Rear_L
+    400012: Coupe_Wheel_Rear_R
+    400014: Coupe_Blue_Left
+    400016: Coupe_Blue_Right
+    400018: Coupe_Gray_Left
+    400020: Coupe_Gray_Right
+    400022: Coupe_Green_Left
+    400024: Coupe_Green_Right
+    400026: Coupe_Red_Left
+    400028: Coupe_Red_Right
+    400030: Hazard_Lights
+    2300000: Coupe_Left
+    2300002: Coupe_Right
+    2300004: Coupe_Wheel_Front_L
+    2300006: Coupe_Wheel_Front_R
+    2300008: Coupe_Wheel_Rear_L
+    2300010: Coupe_Wheel_Rear_R
+    2300012: Coupe_Blue_Left
+    2300014: Coupe_Blue_Right
+    2300016: Coupe_Gray_Left
+    2300018: Coupe_Gray_Right
+    2300020: Coupe_Green_Left
+    2300022: Coupe_Green_Right
+    2300024: Coupe_Red_Left
+    2300026: Coupe_Red_Right
+    2300028: Hazard_Lights
+    3300000: Coupe_Left
+    3300002: Coupe_Right
+    3300004: Coupe_Wheel_Front_L
+    3300006: Coupe_Wheel_Front_R
+    3300008: Coupe_Wheel_Rear_L
+    3300010: Coupe_Wheel_Rear_R
+    3300012: Coupe_Blue_Left
+    3300014: Coupe_Blue_Right
+    3300016: Coupe_Gray_Left
+    3300018: Coupe_Gray_Right
+    3300020: Coupe_Green_Left
+    3300022: Coupe_Green_Right
+    3300024: Coupe_Red_Left
+    3300026: Coupe_Red_Right
+    3300028: Hazard_Lights
+    4300000: Coupe_Right
+    4300002: Coupe_Wheel_Rear_L
+    4300004: Coupe_Wheel_Front_L
+    4300006: Coupe_Wheel_Front_R
+    4300008: Coupe_Wheel_Rear_R
+    4300010: Coupe_Left
+    4300012: Coupe_Blue_Right
+    4300014: Coupe_Gray_Right
+    4300016: Coupe_Green_Right
+    4300018: Coupe_Red_Right
+    4300020: Coupe_Green_Left
+    4300022: Coupe_Gray_Left
+    4300024: Coupe_Blue_Left
+    4300026: Coupe_Red_Left
+    4300028: Hazard_Lights
+    7400000: Default Take
+    9500000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 2
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 1
+    tangentImportMode: 3
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    serializedVersion: 2
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
+    hasTranslationDoF: 0
+    hasExtraRoot: 1
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 0
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
