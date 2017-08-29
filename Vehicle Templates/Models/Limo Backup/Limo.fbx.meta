@@ -1,63 +1,43 @@
 fileFormatVersion: 2
-guid: 11d23c12c02087048a3337cf7f0657a6
-timeCreated: 1494841596
+guid: 4ad73381fc96e4e43953bf11141d331e
+timeCreated: 1501516930
 licenseType: Pro
 ModelImporter:
   serializedVersion: 21
   fileIDToRecycleName:
     100000: //RootNode
-    100002: Taxi_1
-    100004: Taxi_Wheel_Front_L
-    100006: Taxi_Wheel_Front_R
-    100008: Taxi_Wheel_Rear_L
-    100010: Taxi_Wheel_Rear_R
-    100012: Taxi_Left
-    100014: Taxi_Right
-    100016: Hazard_Lights
-    100018: Taxi_Body
+    100002: Limo
+    100004: Limo1
+    100006: Limo_Wheel_Front_L
+    100008: Limo_Wheel_Front_R
+    100010: Limo_Wheel_Rear_L
+    100012: Limo_Wheel_Rear_R
     400000: //RootNode
-    400002: Taxi_1
-    400004: Taxi_Wheel_Front_L
-    400006: Taxi_Wheel_Front_R
-    400008: Taxi_Wheel_Rear_L
-    400010: Taxi_Wheel_Rear_R
-    400012: Taxi_Left
-    400014: Taxi_Right
-    400016: Hazard_Lights
-    400018: Taxi_Body
-    2300000: Taxi_1
-    2300002: Taxi_Wheel_Front_L
-    2300004: Taxi_Wheel_Front_R
-    2300006: Taxi_Wheel_Rear_L
-    2300008: Taxi_Wheel_Rear_R
-    2300010: Taxi_Left
-    2300012: Taxi_Right
-    2300014: Hazard_Lights
-    2300016: Taxi_Body
-    3300000: Taxi_1
-    3300002: Taxi_Wheel_Front_L
-    3300004: Taxi_Wheel_Front_R
-    3300006: Taxi_Wheel_Rear_L
-    3300008: Taxi_Wheel_Rear_R
-    3300010: Taxi_Left
-    3300012: Taxi_Right
-    3300014: Hazard_Lights
-    3300016: Taxi_Body
-    4300000: Taxi_1
-    4300002: Taxi_Wheel_Rear_R
-    4300004: Taxi_Wheel_Rear_L
-    4300006: Taxi_Wheel_Front_R
-    4300008: Taxi_Wheel_Front_L
-    4300010: Taxi_Right
-    4300012: Taxi_Left
-    4300014: Hazard_Lights
-    4300016: Taxi_Body
-    7400000: Default Take
-    9500000: //RootNode
+    400002: Limo
+    400004: Limo1
+    400006: Limo_Wheel_Front_L
+    400008: Limo_Wheel_Front_R
+    400010: Limo_Wheel_Rear_L
+    400012: Limo_Wheel_Rear_R
+    2300000: Limo1
+    2300002: Limo_Wheel_Front_L
+    2300004: Limo_Wheel_Front_R
+    2300006: Limo_Wheel_Rear_L
+    2300008: Limo_Wheel_Rear_R
+    3300000: Limo1
+    3300002: Limo_Wheel_Front_L
+    3300004: Limo_Wheel_Front_R
+    3300006: Limo_Wheel_Rear_L
+    3300008: Limo_Wheel_Rear_R
+    4300000: Limo_Wheel_Rear_R
+    4300002: Limo_Wheel_Front_R
+    4300004: Limo_Wheel_Rear_L
+    4300006: Limo_Wheel_Front_L
+    4300008: Limo1
   materials:
-    importMaterials: 0
+    importMaterials: 1
     materialName: 0
-    materialSearch: 2
+    materialSearch: 1
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
@@ -82,12 +62,12 @@ ModelImporter:
   meshes:
     lODScreenPercentages: []
     globalScale: 1
-    meshCompression: 2
+    meshCompression: 0
     addColliders: 0
-    importVisibility: 0
+    importVisibility: 1
     importBlendShapes: 1
-    importCameras: 0
-    importLights: 0
+    importCameras: 1
+    importLights: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -101,10 +81,10 @@ ModelImporter:
     useFileScale: 1
   tangentSpace:
     normalSmoothAngle: 60
-    normalImportMode: 1
+    normalImportMode: 0
     tangentImportMode: 3
-    normalCalculationMode: 0
-  importAnimation: 0
+    normalCalculationMode: 4
+  importAnimation: 1
   copyAvatar: 0
   humanDescription:
     serializedVersion: 2
@@ -120,7 +100,7 @@ ModelImporter:
     rootMotionBoneName: 
     rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
     hasTranslationDoF: 0
-    hasExtraRoot: 1
+    hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   animationType: 0

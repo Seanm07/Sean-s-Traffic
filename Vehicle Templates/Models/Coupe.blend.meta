@@ -3,7 +3,7 @@ guid: 7972cb6248984b147936f5f2fa5428ac
 timeCreated: 1494844933
 licenseType: Pro
 ModelImporter:
-  serializedVersion: 19
+  serializedVersion: 21
   fileIDToRecycleName:
     100000: //RootNode
     100002: Coupe_Left
@@ -21,6 +21,10 @@ ModelImporter:
     100026: Coupe_Red_Left
     100028: Coupe_Red_Right
     100030: Hazard_Lights
+    100032: Coupe_Blue_Body
+    100034: Coupe_Gray_Body
+    100036: Coupe_Green_Body
+    100038: Coupe_Red_Body
     400000: //RootNode
     400002: Coupe_Left
     400004: Coupe_Right
@@ -37,6 +41,10 @@ ModelImporter:
     400026: Coupe_Red_Left
     400028: Coupe_Red_Right
     400030: Hazard_Lights
+    400032: Coupe_Blue_Body
+    400034: Coupe_Gray_Body
+    400036: Coupe_Green_Body
+    400038: Coupe_Red_Body
     2300000: Coupe_Left
     2300002: Coupe_Right
     2300004: Coupe_Wheel_Front_L
@@ -52,6 +60,10 @@ ModelImporter:
     2300024: Coupe_Red_Left
     2300026: Coupe_Red_Right
     2300028: Hazard_Lights
+    2300030: Coupe_Blue_Body
+    2300032: Coupe_Gray_Body
+    2300034: Coupe_Green_Body
+    2300036: Coupe_Red_Body
     3300000: Coupe_Left
     3300002: Coupe_Right
     3300004: Coupe_Wheel_Front_L
@@ -67,6 +79,10 @@ ModelImporter:
     3300024: Coupe_Red_Left
     3300026: Coupe_Red_Right
     3300028: Hazard_Lights
+    3300030: Coupe_Blue_Body
+    3300032: Coupe_Gray_Body
+    3300034: Coupe_Green_Body
+    3300036: Coupe_Red_Body
     4300000: Coupe_Right
     4300002: Coupe_Wheel_Rear_L
     4300004: Coupe_Wheel_Front_L
@@ -82,6 +98,10 @@ ModelImporter:
     4300024: Coupe_Blue_Left
     4300026: Coupe_Red_Left
     4300028: Hazard_Lights
+    4300030: Coupe_Red_Body
+    4300032: Coupe_Green_Body
+    4300034: Coupe_Gray_Body
+    4300036: Coupe_Blue_Body
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -106,14 +126,18 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 1
+    globalScale: 1.1
     meshCompression: 2
     addColliders: 0
+    importVisibility: 0
     importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -129,7 +153,8 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 1
     tangentImportMode: 3
-  importAnimation: 1
+    normalCalculationMode: 0
+  importAnimation: 0
   copyAvatar: 0
   humanDescription:
     serializedVersion: 2

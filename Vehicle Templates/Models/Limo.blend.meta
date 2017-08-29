@@ -1,57 +1,39 @@
 fileFormatVersion: 2
-guid: eb28ff5f97e123d4aabe831fbb3829da
-timeCreated: 1494844591
+guid: f0505ca73d65f364f872bb146ce81068
+timeCreated: 1501517025
 licenseType: Pro
 ModelImporter:
   serializedVersion: 21
   fileIDToRecycleName:
-    100000: //RootNode
-    100002: IceCream_Truck
-    100004: IceCream_Truck_Wheel_Front_L
-    100006: IceCream_Truck_Wheel_Front_R
-    100008: IceCream_Truck_Wheel_Rear_L
-    100010: IceCream_Truck_Wheel_Rear_R
-    100012: IceCream_Truck_Left
-    100014: IceCream_Truck_Right
-    100016: Hazard_Lights
-    100018: IceCream_Truck_Body
-    400000: //RootNode
-    400002: IceCream_Truck
-    400004: IceCream_Truck_Wheel_Front_L
-    400006: IceCream_Truck_Wheel_Front_R
-    400008: IceCream_Truck_Wheel_Rear_L
-    400010: IceCream_Truck_Wheel_Rear_R
-    400012: IceCream_Truck_Left
-    400014: IceCream_Truck_Right
-    400016: Hazard_Lights
-    400018: IceCream_Truck_Body
-    2300000: IceCream_Truck
-    2300002: IceCream_Truck_Wheel_Front_L
-    2300004: IceCream_Truck_Wheel_Front_R
-    2300006: IceCream_Truck_Wheel_Rear_L
-    2300008: IceCream_Truck_Wheel_Rear_R
-    2300010: IceCream_Truck_Left
-    2300012: IceCream_Truck_Right
-    2300014: Hazard_Lights
-    2300016: IceCream_Truck_Body
-    3300000: IceCream_Truck
-    3300002: IceCream_Truck_Wheel_Front_L
-    3300004: IceCream_Truck_Wheel_Front_R
-    3300006: IceCream_Truck_Wheel_Rear_L
-    3300008: IceCream_Truck_Wheel_Rear_R
-    3300010: IceCream_Truck_Left
-    3300012: IceCream_Truck_Right
-    3300014: Hazard_Lights
-    3300016: IceCream_Truck_Body
-    4300000: IceCream_Truck_Wheel_Rear_L
-    4300002: IceCream_Truck_Wheel_Rear_R
-    4300004: IceCream_Truck_Wheel_Front_R
-    4300006: IceCream_Truck
-    4300008: IceCream_Truck_Wheel_Front_L
-    4300010: IceCream_Truck_Right
-    4300012: IceCream_Truck_Left
-    4300014: Hazard_Lights
-    4300016: IceCream_Truck_Body
+    100000: Limo
+    100002: Limo1
+    100004: Limo_Wheel_Front_L
+    100006: Limo_Wheel_Front_R
+    100008: Limo_Wheel_Rear_L
+    100010: Limo_Wheel_Rear_R
+    100012: //RootNode
+    400000: Limo
+    400002: Limo1
+    400004: Limo_Wheel_Front_L
+    400006: Limo_Wheel_Front_R
+    400008: Limo_Wheel_Rear_L
+    400010: Limo_Wheel_Rear_R
+    400012: //RootNode
+    2300000: Limo1
+    2300002: Limo_Wheel_Front_L
+    2300004: Limo_Wheel_Front_R
+    2300006: Limo_Wheel_Rear_L
+    2300008: Limo_Wheel_Rear_R
+    3300000: Limo1
+    3300002: Limo_Wheel_Front_L
+    3300004: Limo_Wheel_Front_R
+    3300006: Limo_Wheel_Rear_L
+    3300008: Limo_Wheel_Rear_R
+    4300000: Limo1
+    4300002: Limo_Wheel_Front_L
+    4300004: Limo_Wheel_Rear_L
+    4300006: Limo_Wheel_Front_R
+    4300008: Limo_Wheel_Rear_R
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -82,12 +64,12 @@ ModelImporter:
   meshes:
     lODScreenPercentages: []
     globalScale: 1
-    meshCompression: 2
+    meshCompression: 0
     addColliders: 0
-    importVisibility: 0
+    importVisibility: 1
     importBlendShapes: 1
-    importCameras: 0
-    importLights: 0
+    importCameras: 1
+    importLights: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -103,7 +85,7 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 1
     tangentImportMode: 3
-    normalCalculationMode: 0
+    normalCalculationMode: 4
   importAnimation: 0
   copyAvatar: 0
   humanDescription:

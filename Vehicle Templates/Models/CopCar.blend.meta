@@ -3,7 +3,7 @@ guid: 40fb842c2d2680249a244767ac5f0949
 timeCreated: 1494845279
 licenseType: Pro
 ModelImporter:
-  serializedVersion: 19
+  serializedVersion: 21
   fileIDToRecycleName:
     100000: //RootNode
     100002: CopCar_Left
@@ -14,6 +14,7 @@ ModelImporter:
     100012: CopCar_Wheel_Rear_R
     100014: Hazard_Lights
     100016: Brake_Lights
+    100018: CopCar_Body
     400000: //RootNode
     400002: CopCar_Left
     400004: CopCar_Right
@@ -23,6 +24,7 @@ ModelImporter:
     400012: CopCar_Wheel_Rear_R
     400014: Hazard_Lights
     400016: Brake_Lights
+    400018: CopCar_Body
     2300000: CopCar_Left
     2300002: CopCar_Right
     2300004: CopCar_Wheel_Front_L
@@ -31,6 +33,7 @@ ModelImporter:
     2300010: CopCar_Wheel_Rear_R
     2300012: Hazard_Lights
     2300014: Brake_Lights
+    2300016: CopCar_Body
     3300000: CopCar_Left
     3300002: CopCar_Right
     3300004: CopCar_Wheel_Front_L
@@ -39,6 +42,7 @@ ModelImporter:
     3300010: CopCar_Wheel_Rear_R
     3300012: Hazard_Lights
     3300014: Brake_Lights
+    3300016: CopCar_Body
     4300000: CopCar_Right
     4300002: CopCar_Wheel_Front_R
     4300004: CopCar_Wheel_Front_L
@@ -47,6 +51,7 @@ ModelImporter:
     4300010: CopCar_Wheel_Rear_R
     4300012: Hazard_Lights
     4300014: Brake_Lights
+    4300016: CopCar_Body
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -71,6 +76,7 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
@@ -78,7 +84,10 @@ ModelImporter:
     globalScale: 1
     meshCompression: 0
     addColliders: 0
+    importVisibility: 0
     importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -94,7 +103,8 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 1
     tangentImportMode: 3
-  importAnimation: 1
+    normalCalculationMode: 0
+  importAnimation: 0
   copyAvatar: 0
   humanDescription:
     serializedVersion: 2

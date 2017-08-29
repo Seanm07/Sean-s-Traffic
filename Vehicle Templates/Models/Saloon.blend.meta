@@ -3,7 +3,7 @@ guid: 9d4906236c242a64398d45dafbd0c9f5
 timeCreated: 1494843533
 licenseType: Pro
 ModelImporter:
-  serializedVersion: 19
+  serializedVersion: 21
   fileIDToRecycleName:
     100000: //RootNode
     100002: Saloon_Left
@@ -22,6 +22,10 @@ ModelImporter:
     100028: Saloon_Red_Left
     100030: Saloon_Red_Right
     100032: Hazard_Lights
+    100034: Saloon_Blue_Body
+    100036: Saloon_Gray_Body
+    100038: Saloon_Pink_Body
+    100040: Saloon_Red_Body
     400000: //RootNode
     400002: Saloon_Left
     400004: Saloon_Wheel_Front_L
@@ -39,6 +43,10 @@ ModelImporter:
     400028: Saloon_Red_Left
     400030: Saloon_Red_Right
     400032: Hazard_Lights
+    400034: Saloon_Blue_Body
+    400036: Saloon_Gray_Body
+    400038: Saloon_Pink_Body
+    400040: Saloon_Red_Body
     2300000: Saloon_Left
     2300002: Saloon_Wheel_Front_L
     2300004: Saloon_Wheel_Front_R
@@ -55,6 +63,10 @@ ModelImporter:
     2300026: Saloon_Red_Left
     2300028: Saloon_Red_Right
     2300030: Hazard_Lights
+    2300032: Saloon_Blue_Body
+    2300034: Saloon_Gray_Body
+    2300036: Saloon_Pink_Body
+    2300038: Saloon_Red_Body
     3300000: Saloon_Left
     3300002: Saloon_Wheel_Front_L
     3300004: Saloon_Wheel_Front_R
@@ -71,6 +83,10 @@ ModelImporter:
     3300026: Saloon_Red_Left
     3300028: Saloon_Red_Right
     3300030: Hazard_Lights
+    3300032: Saloon_Blue_Body
+    3300034: Saloon_Gray_Body
+    3300036: Saloon_Pink_Body
+    3300038: Saloon_Red_Body
     4300000: Sloon_Right
     4300002: Saloon_Wheel_Rear_L
     4300004: Saloon_Left
@@ -87,6 +103,10 @@ ModelImporter:
     4300026: Saloon_Blue_Right
     4300028: Saloon_Red_Right
     4300030: Hazard_Lights
+    4300032: Saloon_Red_Body
+    4300034: Saloon_Pink_Body
+    4300036: Saloon_Gray_Body
+    4300038: Saloon_Blue_Body
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -111,14 +131,18 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 1
+    globalScale: 0.74
     meshCompression: 2
     addColliders: 0
+    importVisibility: 0
     importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -134,7 +158,8 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 1
     tangentImportMode: 3
-  importAnimation: 1
+    normalCalculationMode: 0
+  importAnimation: 0
   copyAvatar: 0
   humanDescription:
     serializedVersion: 2

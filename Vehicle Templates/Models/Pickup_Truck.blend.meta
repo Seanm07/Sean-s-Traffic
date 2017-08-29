@@ -3,7 +3,7 @@ guid: e620a177659ddfe428db6e9ba7abab18
 timeCreated: 1494843877
 licenseType: Pro
 ModelImporter:
-  serializedVersion: 19
+  serializedVersion: 21
   fileIDToRecycleName:
     100000: //RootNode
     100002: Pickup_Truck_Left
@@ -25,6 +25,10 @@ ModelImporter:
     100034: Hazard_Lights
     100036: Pickup_Truck_Red_Left
     100038: Pickup_Truck_Red_Right
+    100040: Pickup_Truck_Blue_Body
+    100042: Pickup_Truck_Brown_Body
+    100044: Pickup_Truck_Red_Body
+    100046: Pickup_Truck_Teal_Body
     400000: //RootNode
     400002: Pickup_Truck_Left
     400004: Pickup_Truck_Right
@@ -45,6 +49,10 @@ ModelImporter:
     400034: Hazard_Lights
     400036: Pickup_Truck_Red_Left
     400038: Pickup_Truck_Red_Right
+    400040: Pickup_Truck_Blue_Body
+    400042: Pickup_Truck_Brown_Body
+    400044: Pickup_Truck_Red_Body
+    400046: Pickup_Truck_Teal_Body
     2300000: Pickup_Truck_Left
     2300002: Pickup_Truck_Right
     2300004: Pickup_Truck_Wheel_Front_L
@@ -64,6 +72,10 @@ ModelImporter:
     2300032: Hazard_Lights
     2300034: Pickup_Truck_Red_Left
     2300036: Pickup_Truck_Red_Right
+    2300038: Pickup_Truck_Blue_Body
+    2300040: Pickup_Truck_Brown_Body
+    2300042: Pickup_Truck_Red_Body
+    2300044: Pickup_Truck_Teal_Body
     3300000: Pickup_Truck_Left
     3300002: Pickup_Truck_Right
     3300004: Pickup_Truck_Wheel_Front_L
@@ -83,6 +95,10 @@ ModelImporter:
     3300032: Hazard_Lights
     3300034: Pickup_Truck_Red_Left
     3300036: Pickup_Truck_Red_Right
+    3300038: Pickup_Truck_Blue_Body
+    3300040: Pickup_Truck_Brown_Body
+    3300042: Pickup_Truck_Red_Body
+    3300044: Pickup_Truck_Teal_Body
     4300000: Pickup_Truck_Right
     4300002: Pickup_Truck_Wheel_Front_R
     4300004: Pickup_Truck_Wheel_Rear_L
@@ -102,6 +118,10 @@ ModelImporter:
     4300032: Hazard_Lights
     4300034: Pickup_Truck_Red_Left
     4300036: Pickup_Truck_Red_Right
+    4300038: Pickup_Truck_Red_Body
+    4300040: Pickup_Truck_Brown_Body
+    4300042: Pickup_Truck_Teal_Body
+    4300044: Pickup_Truck_Blue_Body
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -126,14 +146,18 @@ ModelImporter:
     animationScaleError: 0.5
     animationWrapMode: 0
     extraExposedTransformPaths: []
+    extraUserProperties: []
     clipAnimations: []
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 1
+    globalScale: 0.8
     meshCompression: 0
     addColliders: 0
+    importVisibility: 0
     importBlendShapes: 1
+    importCameras: 0
+    importLights: 0
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
@@ -149,7 +173,8 @@ ModelImporter:
     normalSmoothAngle: 60
     normalImportMode: 1
     tangentImportMode: 3
-  importAnimation: 1
+    normalCalculationMode: 0
+  importAnimation: 0
   copyAvatar: 0
   humanDescription:
     serializedVersion: 2
