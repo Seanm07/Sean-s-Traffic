@@ -42,15 +42,23 @@ public class AICarHandler : MonoBehaviour {
 
 		bool isAi = TrafficLaneManager.Instance.AILayer == (TrafficLaneManager.Instance.AILayer | (1 << Obj.gameObject.layer));
 		bool isPlayer = TrafficLaneManager.Instance.PlayerLayer == (TrafficLaneManager.Instance.PlayerLayer | (1 << Obj.gameObject.layer));
+		bool isDynamicAi = TrafficLaneManager.Instance.DynamicAILayer == (TrafficLaneManager.Instance.DynamicAILayer | (1 << Obj.gameObject.layer));
 
-		if (isPlayer && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.CarsStopWhenHit) {
+		if ((isPlayer || isDynamicAi) && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.CarsStopWhenHit) {
 			SelfCarData.IsOnRoad = false;
 			SetHazardLights (true);
 
 			SelfRigidbody.isKinematic = false;
 			SelfRigidbody.useGravity = true;
 
-			VehicleManager.Instance.RestoreLastPlayerVelocities ();
+			if(isPlayer){
+				VehicleManager.Instance.RestoreLastPlayerVelocities ();
+			} else if(isDynamicAi){
+				MissionManager.Instance.GetMissionData().ActiveAIVehicle.RestoreLastVelocities();
+
+				// Lower the mass of any vehicles being hit by the dynamic AI
+				SelfRigidbody.mass = 1000f;
+			}
 			// vvv [The above function looks like this] vvv //
 
 			// Start TrafficLaneManager crash restoration //
@@ -80,7 +88,7 @@ public class AICarHandler : MonoBehaviour {
 
 			SelfCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 		} else {
-			if (isPlayer || isAi) {
+			if (isPlayer || isAi || isDynamicAi) {
 				TrafficLaneManager TLM = TrafficLaneManager.Instance;
 
 				float CrashForce = Obj.relativeVelocity.magnitude;
@@ -113,9 +121,21 @@ public class AICarHandler : MonoBehaviour {
 
 		if (!DoEnable)
 			ImpactCooldown = 0f;
+
+		HazardLights_Enabled.localPosition = DoEnable ? HLOrigPos : HLMovedPos;
+		HazardLights_Disabled.localPosition = DoEnable ? HLMovedPos : HLOrigPos;
 	}
 
+	// Having an update loop on ~300 vehicles apparently costs a lot even if there's no code inside it T_T
+	// So rip having flashing hazard lights
+	/*
 	void Update()
+	{
+		UpdateHazardLights();
+	}
+	*/
+
+	private void UpdateHazardLights()
 	{
 		if (IsHazardLightsEnabled) {
 			if (TimeSinceHLChange >= 0.5f) {

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class AIVehicleLaneData {
 	public int VehicleID; // ID of the AI vehicle currently in this lane
@@ -72,8 +73,10 @@ public class CarData {
 
 	public float TimeSinceLastValidRaycast = 0f;
 	public Vector3 RaycastUpVector;
+	public float LastYPoint;
 	public float RaycastYPoint;
 	public float LastYBezierPos;
+	public Vector3 LastTargetPosition;
 
 	public AICarHandler CarHandler;
 	public bool IsOnRoad = true;
@@ -138,6 +141,8 @@ public class TrafficLaneManager : MonoBehaviour {
 	public List<SparkData> SparkPool = new List<SparkData>();
 	private int SparkID = 0;
 
+	private GraphicsTier CachedGraphicsTier;
+
 	public void CreateSparkPool()
 	{
 		for(int i=0;i < 5; i++){
@@ -156,6 +161,25 @@ public class TrafficLaneManager : MonoBehaviour {
 	void Awake()
 	{
 		Instance = (Instance == null ? this : Instance);
+
+		CachedGraphicsTier = Graphics.activeTier;
+
+		switch(CachedGraphicsTier)
+		{
+			// User is playing on a potato
+			case GraphicsTier.Tier1:
+				Time.fixedDeltaTime = 0.0175f;
+				break;
+
+			// User is playing on a phone/tablet
+			default:
+			case GraphicsTier.Tier2:
+				Time.fixedDeltaTime = 0.0100f;
+				break;
+		}
+
+		Time.maximumParticleDeltaTime = Time.fixedDeltaTime;
+		Time.maximumDeltaTime = Time.fixedDeltaTime * 4;
 
 		CreateSparkPool();
 	}
@@ -352,8 +376,21 @@ public class TrafficLaneManager : MonoBehaviour {
 
 						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].RoadID = TotalRoadID;
 						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].StartLane = CurLane;
-						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].Bezier = CurLane.GetComponent<LaneBezierHandler> ();
-						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].EndLane = CurLane.GetComponentsInChildren<LaneBezierHandler> () [1].transform;
+
+						LaneBezierHandler CurLaneBezierHandlerStart = CurLane.GetComponent<LaneBezierHandler>();
+						LaneBezierHandler CurLaneBezierHandlerEnd = CurLane.GetComponentsInChildren<LaneBezierHandler>()[1];
+
+						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].Bezier = CurLaneBezierHandlerStart;
+						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].EndLane = CurLaneBezierHandlerEnd.transform;
+
+						// Update the cached length of the lane
+						CurLaneBezierHandlerStart.GetLength(50);
+
+						// Update the cached lane directions
+						for(int i=0;i <= 5;i++)
+							CurLaneBezierHandlerStart.GetDirection((float)i * 0.2f);
+
+						CurLaneBezierHandlerStart.SetDirty();
 
 						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].WaitForClearIntersection = TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].Bezier.WaitForClearIntersection;
 						TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].DontWaitForThisLane = TrafficData [MapID].RoadData [TotalRoadID].Lanes [LaneID].Bezier.DontWaitForThisLane;
@@ -437,10 +474,13 @@ public class TrafficLaneManager : MonoBehaviour {
 	private int CachedActiveMap = -1;
 	private Transform CachedActiveVehicle = null;
 	private Transform CachedActiveAIVehicle = null;
+	private MapTrafficData ActiveMapTrafficData;
 
 	public void SetActiveMap(int MapID)
 	{
 		CachedActiveMap = MapID;
+
+		ActiveMapTrafficData = TrafficData[CachedActiveMap];
 	}
 
 	public void SetActiveVehicle(Transform VehicleTransform)
@@ -453,10 +493,42 @@ public class TrafficLaneManager : MonoBehaviour {
 		CachedActiveAIVehicle = VehicleTransform;
 	}
 
-	// We're using a FixedUpdate because otherwise the traffic movement would stutter
 	void FixedUpdate()
 	{
-		if(!CachedActiveVehicle || CachedActiveMap < 0) return;
+		if(GameManager.Instance.IsPaused || !ScreenManager.Instance.IsIngame() || !CachedActiveVehicle || CachedActiveMap < 0) return;
+
+		// Update the progress of AI vehicles in the road lanes
+		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
+			// Update the movement of all AI inside lanes of this road
+			for(int LaneID = 0; LaneID < ActiveMapTrafficData.RoadData[RoadID].Lanes.Count; LaneID++)
+			{
+				Lane CurLane = ActiveMapTrafficData.RoadData[RoadID].Lanes[LaneID];
+
+				for(int VehicleID = 0; VehicleID < CurLane.TotalActiveAIVehicles; VehicleID++)
+				{
+					AIVehicleLaneData CurVehicle = CurLane.ActiveAIVehicles[VehicleID];
+
+					if(CurVehicle.CalculationMode <= 2){
+						CarData CurCarData = CarObjects[CurVehicle.VehicleID];
+
+						// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
+						if(CurCarData.IsOnRoad){
+							// Move the vehicle rigidbody to the wanted position
+							CurCarData.VehicleRigidbody.MovePosition(Vector3.Lerp(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 15f * Time.deltaTime));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Update()
+	{
+		if(GameManager.Instance.IsPaused || !ScreenManager.Instance.IsIngame() || !CachedActiveVehicle || CachedActiveMap < 0) return;
+
+		RaycastsThisFrame = 0;
+
+		float DeltaTime = Time.deltaTime;
 
 		CachedPlayerPosition = CachedActiveVehicle.position;
 
@@ -464,9 +536,9 @@ public class TrafficLaneManager : MonoBehaviour {
 			CachedActiveAIPosition = CachedActiveAIVehicle.position;
 
 		// Update the progress of AI vehicles in the road lanes
-		for (int RoadID = 0; RoadID < TrafficData[CachedActiveMap].RoadCount; RoadID++) {
+		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
 			// Update the movement of all AI inside lanes of this road
-			UpdateAIMovement (TrafficData[CachedActiveMap].RoadData[RoadID]);
+			UpdateAIMovement (ActiveMapTrafficData.RoadData[RoadID], DeltaTime);
 		}
 	}
 
@@ -479,9 +551,9 @@ public class TrafficLaneManager : MonoBehaviour {
 
 		CarObjects.Clear ();
 
-		for (int RoadID = 0; RoadID < TrafficData[CachedActiveMap].RoadData.Count; RoadID++) {
-			for (int LaneID = 0; LaneID < TrafficData[CachedActiveMap].RoadData [RoadID].Lanes.Count; LaneID++) {
-				Lane CurLane = TrafficData[CachedActiveMap].RoadData [RoadID].Lanes [LaneID];
+		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadData.Count; RoadID++) {
+			for (int LaneID = 0; LaneID < ActiveMapTrafficData.RoadData [RoadID].Lanes.Count; LaneID++) {
+				Lane CurLane = ActiveMapTrafficData.RoadData [RoadID].Lanes [LaneID];
 
 				CurLane.ActiveAIVehicles.Clear ();
 				CurLane.TotalActiveAIVehicles = 0;
@@ -494,8 +566,8 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	public void SpawnRandomTrafficVehicle(int ForceRoad = -1, int ForceLane = -1)
 	{
-		int RandomRoad = ForceRoad < 0 ? Random.Range (0, TrafficData[CachedActiveMap].RoadCount) : ForceRoad;
-		Road SelectedRoad = TrafficData[CachedActiveMap].RoadData [RandomRoad];
+		int RandomRoad = ForceRoad < 0 ? Random.Range (0, ActiveMapTrafficData.RoadCount) : ForceRoad;
+		Road SelectedRoad = ActiveMapTrafficData.RoadData [RandomRoad];
 
 		// Don't spawn new traffic on intersections, it just causes issues
 		if (SelectedRoad.IntersectionID >= 0) return;
@@ -504,13 +576,12 @@ public class TrafficLaneManager : MonoBehaviour {
 		Lane SelectedLane = SelectedRoad.Lanes [RandomLane];
 
 		float SpawnPosition = Random.Range (0f, 1f);
-		float SpawnOffset = DistanceBetweenVehicles / SelectedLane.Bezier.GetLength ();
 
-		if (IsVehicleInProgress (SelectedLane, SpawnPosition - SpawnOffset, 0, 2f) == BlockageType.None){
+		if (IsVehicleInProgress (SelectedLane, SpawnPosition - (DistanceBetweenVehicles / SelectedLane.Bezier.GetLength ()), 0, 2f) == BlockageType.None){
 			Vector3 StartPosition = SelectedLane.Bezier.GetPosition (0f);
 
 			// Don't allow spawning closer than 100m (otherwise cars might spawn inside the player etc)
-			if(Vector3.Distance(StartPosition, CachedPlayerPosition) >= 100f){
+			if(Vector3.Distance(StartPosition, CachedPlayerPosition) >= 100f && (CachedActiveAIVehicle == null || Vector3.Distance(StartPosition, CachedActiveAIPosition) >= 100f)){
 				// Register the new vehicle with the unique vehicle ID to reference back to the gameobject
 				SelectedLane.ActiveAIVehicles.Add (new AIVehicleLaneData (CarObjects.Count, SpawnPosition));
 				SelectedLane.TotalActiveAIVehicles++;
@@ -521,14 +592,20 @@ public class TrafficLaneManager : MonoBehaviour {
 				Quaternion StartRotation = SelectedLane.Bezier.GetDirection (0f);
 
 				// Instantiate the physical car gameobject and add it to a list
-				GameObject NewVehicle = Instantiate(CarTemplates[Random.Range(0, CarTemplates.Count)].VehicleObj, StartPosition, StartRotation) as GameObject;
+				int RandCarId = Random.Range(0, CarTemplates.Count);
+
+				// If you decide to blacklist all AI cars that will cause an infinite loop here..
+				while(MissionManager.Instance.IsCarBlacklisted(RandCarId))
+					RandCarId = RandCarId + 1 >= CarTemplates.Count ? 0 : RandCarId + 1;
+
+				GameObject NewVehicle = Instantiate(CarTemplates[RandCarId].VehicleObj, StartPosition, StartRotation) as GameObject;
 
 				VehicleRefData NewVehicleRefData = NewVehicle.GetComponent<VehicleRefData> ();
 
 				CarObjects.Add(new CarData(NewVehicle, NewVehicleRefData.Wheels, NewVehicleRefData.HornAudio, NewVehicleRefData.Rigidbody, NewVehicleRefData.CarHandlerScript));
 				CarData NewCarObject = CarObjects[CarObjects.Count - 1];
 
-				AlignToRoad(NewCarObject, SelectedLane, SelectedLane.ActiveAIVehicles[SelectedLane.TotalActiveAIVehicles - 1], StartPosition, 1f, true);
+				//AlignToRoad(NewCarObject, SelectedLane, SelectedLane.ActiveAIVehicles[SelectedLane.TotalActiveAIVehicles - 1], StartPosition, 1f, true);
 
 				NewCarObject.VehicleRigidbody.detectCollisions = false;
 				NewVehicleRefData.CarHandlerScript.Setup(NewCarObject.VehicleRigidbody, NewCarObject, NewVehicleRefData.HazardLightsOff, NewVehicleRefData.HazardLightsOn);
@@ -536,12 +613,13 @@ public class TrafficLaneManager : MonoBehaviour {
 				UpdateAICalculationMode(SelectedLane.ActiveAIVehicles[SelectedLane.TotalActiveAIVehicles - 1], SelectedLane, StartPosition);
 			}
 		}
+
+		// Scale the max raycasts per frame because if there's a LOT of AI vehicles we need to work harder to keep them aligned with the ground
+		MaxRaycastsPerFrame = Mathf.CeilToInt((TotalAIVehicles / 100) * ((CachedGraphicsTier == GraphicsTier.Tier1) ? 2f : 4f));
 	}
 
-	public void UpdateAIMovement(Road CurRoad)
+	public void UpdateAIMovement(Road CurRoad, float DeltaTime)
 	{
-		float DeltaTime = Time.deltaTime;
-
 		// This is assigned all the way out here because getting Vector3.zero is actually pretty expensive when called a lot
 		// and CurVehiclePosition will never be used unless it has its variable set at the start of the iteration anyway
 		Vector3 CurVehiclePosition = Vector3.zero;
@@ -571,8 +649,8 @@ public class TrafficLaneManager : MonoBehaviour {
 								CurCarData.IsOnRoad = true;
 								CurCarData.CarHandler.SetHazardLights(false);
 
-								CurCarData.VehicleRigidbody.isKinematic = false;
-								CurCarData.VehicleRigidbody.useGravity = true;
+								CurCarData.VehicleRigidbody.isKinematic = true;
+								CurCarData.VehicleRigidbody.useGravity = false;
 							} else {
 								CurVehicleLaneData.TimeUntilNextDistanceCheck = CalcModeTime;
 							}
@@ -586,12 +664,13 @@ public class TrafficLaneManager : MonoBehaviour {
 					CurCarData.Speed = CurVehicleLaneData.VehicleSpeed;
 
 					// We only need the vehicle position at certain times so wrap it with this if statement for optimization
-					if (CurVehicleLaneData.CalculationMode < 3 || CurVehicleLaneData.TimeUntilNextDistanceCheck <= 0f || CurVehicleLaneData.CalculationMode == 0)
+					if (CurVehicleLaneData.CalculationMode < 3 || CurVehicleLaneData.TimeUntilNextDistanceCheck <= 0f){
 						CurVehiclePosition = CurLane.Bezier.GetPosition (CurVehicleLaneData.VehicleProgress, CurVehicleLaneData.CalculationMode < 3);
+					}
 
 					// If the wait timer for the next distance check reaches 0, recalculate the AI calculation mode (and use the return value as the time to wait to next check this)
 					if (CurVehicleLaneData.TimeUntilNextDistanceCheck <= 0f){
-						CurVehicleLaneData.TimeUntilNextDistanceCheck = UpdateAICalculationMode (CurVehicleLaneData, CurLane, CurVehiclePosition) + Random.Range (0f, 0.1f);
+						CurVehicleLaneData.TimeUntilNextDistanceCheck = UpdateAICalculationMode (CurVehicleLaneData, CurLane, CurVehiclePosition);
 					}
 
 					// Make sure there's no vehicles blocking our paths or we need to stop and wait in a traffic jam
@@ -600,13 +679,14 @@ public class TrafficLaneManager : MonoBehaviour {
 
 						if (CurVehicleLaneData.VehicleProgress < 1f && CurBlockageType == BlockageType.None) {
 							// Normal speed increase with no blockages
-							CurVehicleLaneData.VehicleSpeed = Mathf.MoveTowards (CurVehicleLaneData.VehicleSpeed, 1f, DeltaTime);
+							if(CurVehicleLaneData.VehicleSpeed < 1f)
+								CurVehicleLaneData.VehicleSpeed += DeltaTime;//Mathf.MoveTowards (CurVehicleLaneData.VehicleSpeed, 1f, DeltaTime);
 						} else {
 							// If the player is blocking this vehicle (or any traffic blocking this vehicle is being blocked by the player) then use the horn
 							if (CurVehicleLaneData.CalculationMode <= 1 && CurVehicleLaneData.TimeUntilHornCanBeUsedAgain <= 0f && CurBlockageType == BlockageType.Player) {
 								CurVehicleLaneData.TimeUntilHornCanBeUsedAgain = Random.Range (1f, 5f);
-								CarObjects [CurVehicleLaneData.VehicleID].HornAudio.pitch = Random.Range (0.9f, 1.1f); // Randomizing the pitch makes it feel more dynamic
-								CarObjects [CurVehicleLaneData.VehicleID].HornAudio.Play ();
+								CurCarData.HornAudio.pitch = Random.Range (0.9f, 1.1f); // Randomizing the pitch makes it feel more dynamic
+								CurCarData.HornAudio.Play ();
 							}
 
 							if (CurVehicleLaneData.VehicleProgress >= 1f) {
@@ -623,19 +703,23 @@ public class TrafficLaneManager : MonoBehaviour {
 								}
 							} else {
 								// There's traffic in front of the vehicle
-								CurVehicleLaneData.VehicleSpeed = Mathf.MoveTowards (CurVehicleLaneData.VehicleSpeed, 0f, 3f * DeltaTime);
+								if(CurVehicleLaneData.VehicleSpeed > 0f){
+									CurVehicleLaneData.VehicleSpeed -= DeltaTime;//Mathf.MoveTowards (CurVehicleLaneData.VehicleSpeed, 0f, 3f * DeltaTime);
+								} else if(CurVehicleLaneData.VehicleSpeed != 0f){
+									CurVehicleLaneData.VehicleSpeed = 0f;
+								}
 							}
 						}
 
 						CurVehicleLaneData.LastBlockageReason = CurBlockageType;
 					}
 
-					CurVehicleLaneData.VehicleProgress += ((15f * CurVehicleLaneData.VehicleSpeed) / RoadLength) * DeltaTime;
-
-					// Calculation mode 2 doesn't render any vehicles, only moves the traffic data around to simulate the cars driving normally when out of vision
-					if ((CurVehicleLaneData.CalculationMode < 2 && CurVehicleLaneData.VehicleSpeed > 0f)) {
+					// Calculation mode 3 doesn't render any vehicles, only moves the traffic data around to simulate the cars driving normally when out of vision
+					if ((CurVehicleLaneData.CalculationMode < 3 && CurVehicleLaneData.VehicleSpeed > 0f)) {
 						AlignToRoad (CurCarData, CurLane, CurVehicleLaneData, CurVehiclePosition, DeltaTime, false);
 					}
+
+					CurVehicleLaneData.VehicleProgress += (CurVehicleLaneData.VehicleSpeed / RoadLength) * DeltaTime * 15f;
 
 					if (CurVehicleLaneData.VehicleProgress >= 1f) {
 						// Clamp the value within range so it doesn't mess with our IsVehicleInProgress detection for vehicles in front of others
@@ -700,41 +784,62 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 	}
 
+	private int RaycastsThisFrame = 0;
+	private int MaxRaycastsPerFrame;
+
 	private void AlignToRoad(CarData CurCarData, Lane CurLane, AIVehicleLaneData CurVehicleLaneData, Vector3 WantedVehiclePosition, float DeltaTime, bool ForceRaycast = false)
 	{
-		float YPosChange = Mathf.Abs(WantedVehiclePosition.y - CurCarData.LastYBezierPos);
-
-		CurCarData.LastYBezierPos = WantedVehiclePosition.y;
-
 		int CalcMode = CurVehicleLaneData.CalculationMode;
 
 		switch (CalcMode) {
 			case 0:
 			case 1:
 			case 2:
-			case 3:
+				float YPosChange = Mathf.Abs(WantedVehiclePosition.y - CurCarData.LastYBezierPos);
+				CurCarData.LastYBezierPos = WantedVehiclePosition.y;
+
 				Quaternion WantedRotation = CurLane.Bezier.GetDirection(CurVehicleLaneData.VehicleProgress);
+				float WantedRotationAngle = Mathf.LerpAngle(CurCarData.VehicleObj.transform.eulerAngles.y, WantedRotation.eulerAngles.y, 10f * DeltaTime);
 
 				// Align the X and Z with the ground normal
 				RaycastHit Hit;
 
-				if(ForceRaycast || (YPosChange >= (0.00015f * (CalcMode + 1)) && (CurCarData.TimeSinceLastValidRaycast >= (CalcMode <= 1 ? (CalcMode + 1f) : (CalcMode + 2f)) * DeltaTime))){
-					if (Physics.Raycast (WantedVehiclePosition + (Vector3.up * 10f), Vector3.down, out Hit, 30f, RoadLayer)) {
-						CurCarData.VehicleObj.transform.up = Hit.normal;
+				bool DidRunAndHitRaycast = false;
 
-						WantedVehiclePosition.y = Hit.point.y;
+				//if(ForceRaycast || (YPosChange >= ((0.00015f * (CalcMode + 1)) && (CurCarData.TimeSinceLastValidRaycast >= (CalcMode <= 1 ? (CalcMode + 1f) : (CalcMode + 2f)) * DeltaTime))){
+				if(ForceRaycast || (CurCarData.TimeSinceLastValidRaycast >= (CalcMode + 1f) * DeltaTime)){
+					if(RaycastsThisFrame < MaxRaycastsPerFrame || ForceRaycast || CalcMode == 0 || CurCarData.TimeSinceLastValidRaycast > (6f * DeltaTime)){
+						RaycastsThisFrame++;
 
-						CurCarData.TimeSinceLastValidRaycast = 0f;
-						CurCarData.RaycastUpVector = Hit.normal;
-						CurCarData.RaycastYPoint = Hit.point.y;
+						if (Physics.Raycast (WantedVehiclePosition + (Vector3.up * 10f), Vector3.down, out Hit, 30f, RoadLayer)) {
+							CurCarData.VehicleObj.transform.up = Hit.normal;
+
+							if(ForceRaycast){// || CalcMode == 0){
+								WantedVehiclePosition.y = Hit.point.y; // This will only be called when we're forcing a raycast (happens when spawning, switching lanes or as the calculation mode changes)
+							} else {
+								WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, Hit.point.y, 30f * DeltaTime);
+							}
+
+							CurCarData.TimeSinceLastValidRaycast = 0f;
+							CurCarData.RaycastUpVector = Hit.normal;
+							CurCarData.LastYPoint = WantedVehiclePosition.y;
+							CurCarData.RaycastYPoint = Hit.point.y;//WantedVehiclePosition.y;//Hit.point.y;
+
+							DidRunAndHitRaycast = true;
+
+							//CurCarData.CarHandler.gameObject.name = Time.frameCount + ", " + WantedVehiclePosition.y + ", " + CurCarData.LastYPoint + ", " + Hit.point.y + ", " + ForceRaycast + ", " + CalcMode;
+						}
 					}
-				} else {
-					CurCarData.TimeSinceLastValidRaycast += DeltaTime;
-					CurCarData.VehicleObj.transform.up = CurCarData.RaycastUpVector;
-					WantedVehiclePosition.y = CurCarData.RaycastYPoint;
 				}
 
-				CurCarData.VehicleObj.transform.Rotate(Vector3.up, Mathf.DeltaAngle(CurCarData.VehicleObj.transform.rotation.eulerAngles.y, WantedRotation.eulerAngles.y), Space.Self);
+				if(!DidRunAndHitRaycast) {
+					CurCarData.TimeSinceLastValidRaycast += DeltaTime;
+					CurCarData.VehicleObj.transform.up = CurCarData.RaycastUpVector;
+					WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, CurCarData.RaycastYPoint, 30f * DeltaTime);
+					CurCarData.LastYPoint = WantedVehiclePosition.y;
+				}
+
+				CurCarData.VehicleObj.transform.Rotate(Vector3.up, Mathf.DeltaAngle(CurCarData.VehicleObj.transform.eulerAngles.y, WantedRotationAngle), Space.Self);
 				break;
 		}
 
@@ -748,8 +853,7 @@ public class TrafficLaneManager : MonoBehaviour {
 				CurWheel.Rotate(V3Right, WheelRotationDelta, Space.Self);
 		}
 
-		// Move the vehicle rigidbody to the wanted position
-		CurCarData.VehicleRigidbody.MovePosition(WantedVehiclePosition);
+		CurCarData.LastTargetPosition = WantedVehiclePosition;
 	}
 
 	// Returns the time until the calculation mode should be re-checked
@@ -757,37 +861,49 @@ public class TrafficLaneManager : MonoBehaviour {
 	{
 		// The distance from both the player and AI are taken into consideration and the lowest value is used
 		float PlayerDistance = (CachedPlayerPosition - Position).sqrMagnitude;
-		float AIDistance = Mathf.Clamp((CachedActiveAIVehicle != null ? (CachedActiveAIPosition - Position).sqrMagnitude : float.MaxValue), 2500f, float.MaxValue);;
+		float AIDistance = Mathf.Clamp((CachedActiveAIVehicle != null ? (CachedActiveAIPosition - Position).sqrMagnitude : float.MaxValue), 2500f, float.MaxValue);
 		float Distance = (PlayerDistance < AIDistance ? PlayerDistance : AIDistance);
 
 		CarData CurCarData = CarObjects[LaneData.VehicleID];
 
-		if (Distance >= 40000f) { // 200f
+		float DeviceTierAdjustment = 1f;
+
+		// If the game is being ran on a potato we'll cut all the AI mode distances in half
+		if(CachedGraphicsTier == GraphicsTier.Tier1) DeviceTierAdjustment = 0.5f;
+
+		if (Distance >= 40000f * DeviceTierAdjustment) { // 200f or 100f
 			if (LaneData.CalculationMode != 3) {
 				LaneData.CalculationMode = 3; // Best performance, only move vehicle no rendering or fancy bezier stuff
 
 				// Disable the car rigidbody from detecting collisions
+				CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
 				CurCarData.VehicleRigidbody.isKinematic = true;
 				CurCarData.VehicleRigidbody.useGravity = false;
 				CurCarData.VehicleRigidbody.detectCollisions = false;
-				CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
 
 				// We move the car underground AFTER disabling collisions, otherwise moving cars underground would cause them all to collider together!
 				CurCarData.VehicleObj.transform.position = new Vector3(0f, -10000f, 0f); // Much cheaper than toggling the object or renderer (we ran tests)
 			}
 				
 			return 0.5f; // Half a second should be enough time to switch calculation mode before we get too close
-		} else if (Distance >= 22500f) { // 150f
+		} else if (Distance >= 22500f * DeviceTierAdjustment) { // 150f or 75f
 			if(LaneData.CalculationMode != 2){
 				LaneData.CalculationMode = 2;
 
-				// Disable the car rigidbody from detecting collisions
-				CurCarData.VehicleRigidbody.isKinematic = true;
-				CurCarData.VehicleRigidbody.useGravity = false;
-				CurCarData.VehicleRigidbody.detectCollisions = false;
-				CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+				if(CurCarData.IsOnRoad){
+					// Disable the car rigidbody from detecting collisions
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+					CurCarData.VehicleRigidbody.isKinematic = true;
+					CurCarData.VehicleRigidbody.useGravity = false;
+					CurCarData.VehicleRigidbody.detectCollisions = false;
 
-				AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+				} else {
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+					CurCarData.VehicleRigidbody.isKinematic = false;
+					CurCarData.VehicleRigidbody.useGravity = true;
+					CurCarData.VehicleRigidbody.detectCollisions = true;
+				}
 			} else {
 				if(CurCarData.IsOnRoad){
 					// Always force position in this mode
@@ -796,17 +912,24 @@ public class TrafficLaneManager : MonoBehaviour {
 			}
 
 			return (CurCarData.IsOnRoad ? 0.2f : 3f);
-		} else if(Distance >= 2500f){ // 50f
+		} else if(Distance >= 2500f * DeviceTierAdjustment){ // 50f or 25f
 			if(LaneData.CalculationMode != 1){
 				LaneData.CalculationMode = 1; // No reaction to the player, road alignment is cheaper and bezier calculations are ran less often
 
-				// Disable the car rigidbody from detecting collisions
-				CurCarData.VehicleRigidbody.isKinematic = true;
-				CurCarData.VehicleRigidbody.useGravity = false;
-				CurCarData.VehicleRigidbody.detectCollisions = false;
-				CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+				if(CurCarData.IsOnRoad){
+					// Disable the car rigidbody from detecting collisions
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+					CurCarData.VehicleRigidbody.isKinematic = true;
+					CurCarData.VehicleRigidbody.useGravity = false;
+					CurCarData.VehicleRigidbody.detectCollisions = true;
 
-				AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+				} else {
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
+					CurCarData.VehicleRigidbody.isKinematic = false;
+					CurCarData.VehicleRigidbody.useGravity = true;
+					CurCarData.VehicleRigidbody.detectCollisions = true;
+				}
 			}
 
 			return (CurCarData.IsOnRoad ? 0.05f : 3f); // This needs to be updated more often than others as the player is pretty close to this vehicle
@@ -817,13 +940,18 @@ public class TrafficLaneManager : MonoBehaviour {
 				if(CurCarData.IsOnRoad){
 					// Make sure to move the AI onto the road before enabling collisions or they'll explode as they hit anyone else moving
 					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
-				}
 
-				// Allow the car rigidbody to detect collisions
-				CurCarData.VehicleRigidbody.isKinematic = true;
-				CurCarData.VehicleRigidbody.useGravity = false;
-				CurCarData.VehicleRigidbody.detectCollisions = true;
-				CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+					// Allow the car rigidbody to detect collisions
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+					CurCarData.VehicleRigidbody.isKinematic = true;
+					CurCarData.VehicleRigidbody.useGravity = false;
+					CurCarData.VehicleRigidbody.detectCollisions = true;
+				} else {
+					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
+					CurCarData.VehicleRigidbody.isKinematic = false;
+					CurCarData.VehicleRigidbody.useGravity = true;
+					CurCarData.VehicleRigidbody.detectCollisions = true;
+				}
 			}
 
 			return 5f; // We don't need to worry about despawning cars at a distance as much as making them visible
@@ -833,20 +961,28 @@ public class TrafficLaneManager : MonoBehaviour {
 	// Converts a lane start transform into Lane data
 	public Lane GetLane(JointLaneData LaneData)
 	{
-		return TrafficData [CachedActiveMap].RoadData [LaneData.RoadID].Lanes [LaneData.LaneID];
+		return ActiveMapTrafficData.RoadData [LaneData.RoadID].Lanes [LaneData.LaneID];
 	}
 
 	public bool CanJoinLane(Lane NewLane, AIVehicleLaneData CurVehicleLaneData, float CarDistance, bool IsRoadChange = false)
 	{
 		// Only allow 1 vehicle on an intersection at once (because lanes cross over each other at intersections)
 		if (IsRoadChange) {
+			Road CurRoad = ActiveMapTrafficData.RoadData [NewLane.RoadID];
+
 			// IntersectionID is -1 if the road is not an intersection
-			if (TrafficData [CachedActiveMap].RoadData [NewLane.RoadID].IntersectionID >= 0) {
+			if (CurRoad.IntersectionID >= 0) {
+				if(CachedActiveAIVehicle != null){
+					if(Vector3.Distance(NewLane.StartLane.transform.position, CachedActiveAIVehicle.position) <= 100f){
+						return false; // Don't allow any vehicles to change lanes if the dynamic AI is nearby
+					}
+				}
+
 				// Only wait to join the lane if it's marked as WaitForClearIntersection
 				if (NewLane.WaitForClearIntersection) {
 					// Check for any vehicles on any other lanes with this IntersectionID
-					for (int i = 0; i < TrafficData [CachedActiveMap].RoadData [NewLane.RoadID].LaneCount; i++) {
-						Lane ComparisonLane = TrafficData [CachedActiveMap].RoadData [NewLane.RoadID].Lanes [i];
+					for (int i = 0; i < CurRoad.LaneCount; i++) {
+						Lane ComparisonLane = CurRoad.Lanes [i];
 
 						// Ignore the check if we're looking at the same lane
 						if (NewLane != ComparisonLane) {
@@ -860,8 +996,8 @@ public class TrafficLaneManager : MonoBehaviour {
 					}
 				} else if (!NewLane.DontWaitForThisLane) {
 					// We also need to wait if this is a normal intersection if there's cars in the WaitForClearIntersection lanes incase they get stuck waiting in the intersection
-					for (int i = 0; i < TrafficData [CachedActiveMap].RoadData [NewLane.RoadID].LaneCount; i++) {
-						Lane ComparisonLane = TrafficData [CachedActiveMap].RoadData [NewLane.RoadID].Lanes [i];
+					for (int i = 0; i < CurRoad.LaneCount; i++) {
+						Lane ComparisonLane = CurRoad.Lanes [i];
 
 						// If the lane we're checking if a wait for clear intersection lane then we need to make sure it's empty before we can enter the lane
 						if (ComparisonLane.WaitForClearIntersection) {
@@ -912,6 +1048,8 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	public enum BlockageType { Player, AI, PlayerSiren, None }
 
+	private float LaneWidth = 2f;
+
 	// Test for any vehicles within a certain range of progress in the selected lane
 	public BlockageType IsVehicleInProgress(Lane SelectedLane, float MinProgress, int CalculationMode = 0, float DistanceMultiplier = 1f)
 	{
@@ -944,74 +1082,75 @@ public class TrafficLaneManager : MonoBehaviour {
 			}
 		}
 
-		// NOTE: This may be broken
-		// Also check if the player is blocking in any joint lanes if MaxProgress is 1f or greater
-		if (MinProgress >= 1f - VehicleDistance) {
-			for (int JointLaneID = 0; JointLaneID < SelectedLane.JointLaneCount; JointLaneID++) {
-				Lane CurJointLane = GetLane (SelectedLane.JointLanes [JointLaneID]);
-				float CurLaneVehicleDistance = (DistanceBetweenVehicles / CurJointLane.Bezier.GetLength ());
+		if(CalculationMode <= 1f){
+			// Also check if the player is blocking in any joint lanes if MaxProgress is 1f or greater
+			if (MinProgress >= 1f - VehicleDistance) {
+				for (int JointLaneID = 0; JointLaneID < SelectedLane.JointLaneCount; JointLaneID++) {
+					Lane CurJointLane = GetLane (SelectedLane.JointLanes [JointLaneID]);
+					float CurLaneVehicleDistance = (DistanceBetweenVehicles / CurJointLane.Bezier.GetLength ());
 
-				// From here we're doing the same as the above for loop
-				for (int i = 0; i < CurJointLane.TotalActiveAIVehicles; i++) {
-					AIVehicleLaneData CurVehicleLaneData = CurJointLane.ActiveAIVehicles [i];
+					// From here we're doing the same as the above for loop
+					for (int i = 0; i < CurJointLane.TotalActiveAIVehicles; i++) {
+						AIVehicleLaneData CurVehicleLaneData = CurJointLane.ActiveAIVehicles [i];
 
-					// Check if there's a vehicle on the section of the road lane we just queied
-					if (CurVehicleLaneData.VehicleProgress <= (CurLaneVehicleDistance / 2f)) {
-						// If the car in front of this block is being blocked by the player then mark this blockage type as player too (so everyone beeps their horns)
-						if (CurVehicleLaneData.LastBlockageReason == BlockageType.Player) {
-							//CarObjects [CurVehicleLaneData.VehicleID].VehicleObj.name += "[PLYPROG2]";
+						// Check if there's a vehicle on the section of the road lane we just queied
+						if (CurVehicleLaneData.VehicleProgress <= (CurLaneVehicleDistance / 2f)) {
+							// If the car in front of this block is being blocked by the player then mark this blockage type as player too (so everyone beeps their horns)
+							if (CurVehicleLaneData.LastBlockageReason == BlockageType.Player) {
+								//CarObjects [CurVehicleLaneData.VehicleID].VehicleObj.name += "[PLYPROG2]";
 
-							return BlockageType.Player;
-						} else {
-							//CarObjects [CurVehicleLaneData.VehicleID].VehicleObj.name += "[AIPROG2]";
+								return BlockageType.Player;
+							} else {
+								//CarObjects [CurVehicleLaneData.VehicleID].VehicleObj.name += "[AIPROG2]";
 
-							return BlockageType.AI;
+								return BlockageType.AI;
+							}
 						}
 					}
 				}
 			}
-		}
 
-		// Do a check to see if the player is blocking the AI but do it step by step so all the heavy functions aren't being ran when not needed
+			// Do a check to see if the player is blocking the AI but do it step by step so all the heavy functions aren't being ran when not needed
 
-		// Test for the player blocking progress
-		float LaneWidth = 2f; // TODO: Move this variable outside the function
+			// Test for the player blocking progress
 
-		if (CalculationMode == 0) {
-			// Check if the player is in front of the AI
-			Vector2 FlatPlayerPosition = GetVector2NoY (CachedPlayerPosition);
-			Vector2 FlatAIPosition = (CachedActiveAIVehicle != null ? GetVector2NoY(CachedActiveAIPosition) : Vector2.zero);
 
-			Vector2 StartCenter = GetVector2NoY (SelectedLane.Bezier.GetPosition (MinProgress));
-			Quaternion StartDirection = SelectedLane.Bezier.GetDirection (MinProgress);
-			Vector2 StartForwardDirection = GetVector2NoY (StartDirection * Vector3.forward);
+			if (CalculationMode == 0) {
+				// Check if the player is in front of the AI
+				Vector2 FlatPlayerPosition = GetVector2NoY (CachedPlayerPosition);
+				Vector2 FlatAIPosition = (CachedActiveAIVehicle != null ? GetVector2NoY(CachedActiveAIPosition) : Vector2.zero);
 
-			bool IsPlayerWithinStartEdge = (Vector2.Dot (StartForwardDirection, (FlatPlayerPosition - StartCenter).normalized) >= 0);
-			bool IsAIWithinStartEdge = (CachedActiveAIVehicle != null ? (Vector2.Dot(StartForwardDirection, (FlatAIPosition - StartCenter).normalized) >= 0) : false);
-			bool IsWithinStartEdge = (IsPlayerWithinStartEdge || IsAIWithinStartEdge);
+				Vector2 StartCenter = GetVector2NoY (SelectedLane.Bezier.GetPosition (MinProgress));
+				Quaternion StartDirection = SelectedLane.Bezier.GetDirection (MinProgress);
+				Vector2 StartForwardDirection = GetVector2NoY (StartDirection * Vector3.forward);
 
-			Vector2 EndCenter = Vector2.zero;
-			Quaternion EndDirection = Quaternion.identity;
+				bool IsPlayerWithinStartEdge = (Vector2.Dot (StartForwardDirection, (FlatPlayerPosition - StartCenter).normalized) >= 0);
+				bool IsAIWithinStartEdge = (CachedActiveAIVehicle != null ? (Vector2.Dot(StartForwardDirection, (FlatAIPosition - StartCenter).normalized) >= 0) : false);
+				bool IsWithinStartEdge = (IsPlayerWithinStartEdge || IsAIWithinStartEdge);
 
-			if (IsWithinStartEdge) {
-				// Check if the player is in front of the AI vehicle
-				EndCenter = GetVector2NoY (SelectedLane.Bezier.GetPosition (MaxProgress));
-				EndDirection = SelectedLane.Bezier.GetDirection (MaxProgress);
-				Vector2 EndForwardDirection = GetVector2NoY (EndDirection * Vector3.forward);
+				Vector2 EndCenter = Vector2.zero;
+				Quaternion EndDirection = Quaternion.identity;
 
-				bool IsPlayerWithinEndEdge = (Vector2.Dot (-EndForwardDirection, (FlatPlayerPosition - EndCenter).normalized) >= 0);
-				bool IsAIWithinEndEdge = (CachedActiveAIVehicle != null ? (Vector2.Dot(-EndForwardDirection, (FlatAIPosition - EndCenter).normalized) >= 0) : false);
-				bool IsWithinEndEdge = (IsPlayerWithinEndEdge || IsAIWithinEndEdge);
+				if (IsWithinStartEdge) {
+					// Check if the player is in front of the AI vehicle
+					EndCenter = GetVector2NoY (SelectedLane.Bezier.GetPosition (MaxProgress));
+					EndDirection = SelectedLane.Bezier.GetDirection (MaxProgress);
+					Vector2 EndForwardDirection = GetVector2NoY (EndDirection * Vector3.forward);
 
-				if (IsWithinEndEdge) {
-					bool IsPlayerWithinLeftRight = IsWithinLeftRight (StartDirection, EndDirection, LaneWidth, FlatPlayerPosition, StartCenter, EndCenter);
-					bool IsAIWithinLeftRight = (CachedActiveAIVehicle != null ? IsWithinLeftRight (StartDirection, EndDirection, LaneWidth, FlatAIPosition, StartCenter, EndCenter) : false);
+					bool IsPlayerWithinEndEdge = (Vector2.Dot (-EndForwardDirection, (FlatPlayerPosition - EndCenter).normalized) >= 0);
+					bool IsAIWithinEndEdge = (CachedActiveAIVehicle != null ? (Vector2.Dot(-EndForwardDirection, (FlatAIPosition - EndCenter).normalized) >= 0) : false);
+					bool IsWithinEndEdge = (IsPlayerWithinEndEdge || IsAIWithinEndEdge);
 
-					if(IsPlayerWithinLeftRight || IsAIWithinLeftRight){
-						return BlockageType.Player;
+					if (IsWithinEndEdge) {
+						bool IsPlayerWithinLeftRight = IsWithinLeftRight (StartDirection, EndDirection, LaneWidth, FlatPlayerPosition, StartCenter, EndCenter);
+						bool IsAIWithinLeftRight = (CachedActiveAIVehicle != null ? IsWithinLeftRight (StartDirection, EndDirection, LaneWidth, FlatAIPosition, StartCenter, EndCenter) : false);
+
+						if(IsPlayerWithinLeftRight || IsAIWithinLeftRight){
+							return BlockageType.Player;
+						}
 					}
 				}
-			} 
+			}
 
 			// THIS IS CURRENTLY BROKEN!!
 			/*else if (VehicleManager.Instance.IsActiveVehicleSirenOn () && (MaxProgress - MinProgress) - MinProgress >= 0f) {

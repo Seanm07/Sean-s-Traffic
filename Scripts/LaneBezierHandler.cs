@@ -15,7 +15,8 @@ public class LaneBezierHandler : MonoBehaviour {
 	public bool WaitForClearIntersection = false;
 	public bool DontWaitForThisLane = false;
 
-	private float CachedLength = 0f;
+	[HideInInspector]
+	public float CachedLength = 0f;
 
 	public void SwapStartAndEndPositions()
 	{
@@ -148,7 +149,9 @@ public class LaneBezierHandler : MonoBehaviour {
 		}
 	#endif
 
-	private Vector3[] CachedPoints = new Vector3[4]; // Getting the position constantly was expensive and unnessesary
+	[HideInInspector]
+	[SerializeField]
+	public Vector3[] CachedPoints = new Vector3[4]; // Getting the position constantly was expensive and unnessesary
 
 	void Awake()
 	{
@@ -192,10 +195,16 @@ public class LaneBezierHandler : MonoBehaviour {
 	public Vector3 GetPoint(int i)
 	{
 		// The points aren't cached in the editor outside play mode
-		/*#if UNITY_EDITOR
-			if (!Application.isPlaying)
-				UpdateCachedPoints ();
-		#endif*/
+		#if UNITY_EDITOR
+			if (!Application.isPlaying){
+				if (!IsStartPoint || EndPoint == null) return Vector3.zero;
+
+				CachedPoints [0] = transform.position;
+				CachedPoints [1] = (BezierPoints.Length >= 1 ? BezierPoints [0].position : Vector3.zero);
+				CachedPoints [2] = (BezierPoints.Length >= 2 ? BezierPoints [1].position : Vector3.zero);
+				CachedPoints [3] = EndPoint.position;
+			}
+		#endif
 
 		return CachedPoints [i];
 	}
@@ -262,18 +271,39 @@ public class LaneBezierHandler : MonoBehaviour {
 		}
 	}
 
+	[SerializeField]
+	private Quaternion[] CachedDir = new Quaternion[6];
+
 	public Quaternion GetDirection(float t)
 	{
-		Vector3 Velocity = GetVelocity (t).normalized;
-		Quaternion ReturnValue = Quaternion.identity;
+		int CacheKey = Mathf.RoundToInt(Mathf.Clamp01(t) * 5f);
 
-		if (Velocity != Vector3.zero)
-			ReturnValue = Quaternion.LookRotation (Velocity);
+		#if UNITY_EDITOR
+			if(!Application.isPlaying){
+				if(CachedDir.Length != 6) CachedDir = new Quaternion[6];
 
-		return ReturnValue;
+				Vector3 Velocity = GetVelocity (t).normalized;
+				Quaternion ReturnValue = Quaternion.identity;
+
+				if (Velocity != Vector3.zero)
+					ReturnValue = Quaternion.LookRotation (Velocity);
+
+				CachedDir[CacheKey] = ReturnValue;
+			}
+		#endif
+
+		//Debug.Log("Requested " + t + " which gave key " + CacheKey + " and returned " + CachedDir[CacheKey]);
+
+		return CachedDir[CacheKey];
 	}
 
 	#if UNITY_EDITOR
+		public void SetDirty()
+		{
+			// This is required or the CachedDir and stuff reverts back to before we changed it when restarting or entering play mode..
+			UnityEditor.EditorUtility.SetDirty(this);
+		}
+
 		private Vector3 CachedSpherePosGreen; 
 		private Vector3 CachedSpherePosOrange;
 		private Vector3 CachedSpherePosRed;
