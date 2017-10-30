@@ -512,7 +512,7 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	void FixedUpdate()
 	{
-		if(GameManager.Instance.IsPaused || !ScreenManager.Instance.IsIngame() || !CachedActiveVehicle || CachedActiveMap < 0) return;
+		if(!CachedActiveVehicle || CachedActiveMap < 0) return;
 
 		// Update the progress of AI vehicles in the road lanes
 		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
@@ -541,7 +541,7 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	void Update()
 	{
-		if(GameManager.Instance.IsPaused || !ScreenManager.Instance.IsIngame() || !CachedActiveVehicle || CachedActiveMap < 0) return;
+		if(!CachedActiveVehicle || CachedActiveMap < 0) return;
 
 		RaycastsThisFrame = 0;
 
