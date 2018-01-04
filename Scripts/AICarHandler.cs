@@ -42,9 +42,8 @@ public class AICarHandler : MonoBehaviour {
 
 		bool isAi = TrafficLaneManager.Instance.AILayer == (TrafficLaneManager.Instance.AILayer | (1 << Obj.gameObject.layer));
 		bool isPlayer = TrafficLaneManager.Instance.PlayerLayer == (TrafficLaneManager.Instance.PlayerLayer | (1 << Obj.gameObject.layer));
-		bool isDynamicAi = TrafficLaneManager.Instance.DynamicAILayer == (TrafficLaneManager.Instance.DynamicAILayer | (1 << Obj.gameObject.layer));
 
-		if ((isPlayer || isDynamicAi) && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.CarsStopWhenHit) {
+		if ((isPlayer) && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.CarsStopWhenHit) {
 			SelfCarData.IsOnRoad = false;
 			SetHazardLights (true);
 
@@ -52,43 +51,39 @@ public class AICarHandler : MonoBehaviour {
 			SelfRigidbody.useGravity = true;
 
 			if(isPlayer){
-				VehicleManager.Instance.RestoreLastPlayerVelocities ();
-			} else if(isDynamicAi){
-				//MissionManager.Instance.GetMissionData().ActiveAIVehicle.RestoreLastVelocities();
+				Debug.Log("Developer notice! Call RestoreLastPlayerVelocities in your vehicle script here!");
+				//VehicleManager.Instance.RestoreLastPlayerVelocities ();
+				// vvv [The above function looks like this] vvv //
 
-				// Lower the mass of any vehicles being hit by the dynamic AI
-				SelfRigidbody.mass = 1000f;
-			}
-			// vvv [The above function looks like this] vvv //
+				// Start TrafficLaneManager crash restoration //
+				/*private Vector3 LastVelocity;
+				private Vector3 LastAngularVelocity;
 
-			// Start TrafficLaneManager crash restoration //
-			/*private Vector3 LastVelocity;
-			private Vector3 LastAngularVelocity;
+				public void RestoreLastPlayerVelocities()
+				{
+					// Replace this with a reference to your current active vehicle rigidbody
+					Rigidbody SelfRigidbody = GetActiveVehicle().SelfRigidbody;
 
-			public void RestoreLastPlayerVelocities()
-			{
-				// Replace this with a reference to your current active vehicle rigidbody
-				Rigidbody SelfRigidbody = GetActiveVehicle().SelfRigidbody;
-
-				SelfRigidbody.velocity = LastVelocity;
-				SelfRigidbody.angularVelocity = LastAngularVelocity;
-			}
-
-			void FixedUpdate()
-			{
-				// Replace this with a reference to your current active vehicle rigidbody
-				Rigidbody SelfRigidbody = GetActiveVehicle().SelfRigidbody;
-
-				if(SelfRigidbody != null){
-					LastVelocity = SelfRigidbody.velocity;
-					LastAngularVelocity = SelfRigidbody.angularVelocity;
+					SelfRigidbody.velocity = LastVelocity;
+					SelfRigidbody.angularVelocity = LastAngularVelocity;
 				}
-			}*/
-			// End TrafficLaneManager crash restoration //
+
+				void FixedUpdate()
+				{
+					// Replace this with a reference to your current active vehicle rigidbody
+					Rigidbody SelfRigidbody = GetActiveVehicle().SelfRigidbody;
+
+					if(SelfRigidbody != null){
+						LastVelocity = SelfRigidbody.velocity;
+						LastAngularVelocity = SelfRigidbody.angularVelocity;
+					}
+				}*/
+				// End TrafficLaneManager crash restoration //
+			}
 
 			SelfCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
 		} else {
-			if (isPlayer || isAi || isDynamicAi) {
+			if (isPlayer || isAi) {
 				TrafficLaneManager TLM = TrafficLaneManager.Instance;
 
 				float CrashForce = Obj.relativeVelocity.magnitude;

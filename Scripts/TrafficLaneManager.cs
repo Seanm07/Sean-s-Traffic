@@ -71,23 +71,23 @@ public class Road {
 [System.Serializable]
 public class CarData {
 	public GameObject VehicleObj;
-	public Rigidbody VehicleRigidbody;
+	public Rigidbody VehicleRigidbody { get; set; }
 	public List<Transform> Wheels { get; set; }
 	public AudioSource HornAudio { get; set; }
 	public float Speed { get; set; }
 
-	public float TimeSinceLastValidRaycast = 0f;
-	public Vector3 RaycastUpVector;
-	public float LastYPoint;
-	public float RaycastYPoint;
-	public float LastYBezierPos;
-	public Vector3 LastTargetPosition;
-	public Vector3 LaneChangePositionOffset;
+	public float TimeSinceLastValidRaycast { get; set; }
+	public Vector3 RaycastUpVector { get; set; }
+	public float LastYPoint { get; set; }
+	public float RaycastYPoint { get; set; }
+	public float LastYBezierPos { get; set; }
+	public Vector3 LastTargetPosition { get; set; }
+	public Vector3 LaneChangePositionOffset { get; set; }
 
-	public AICarHandler CarHandler;
-	public bool IsOnRoad = true;
-	public bool IsChangingLane = false;
-	public bool IsAllowedOffRoadMovement = false;
+	public AICarHandler CarHandler { get; set; }
+	public bool IsOnRoad { get; set; }
+	public bool IsChangingLane { get; set; }
+	public bool IsAllowedOffRoadMovement { get; set; }
 
 	public CarData (GameObject InObj, List<Transform> InWheels, AudioSource InHornAudio, Rigidbody InRigidbody, AICarHandler InCarHandler)
 	{
@@ -97,6 +97,8 @@ public class CarData {
 
 		CarHandler = InCarHandler;
 		HornAudio = InHornAudio;
+
+		IsOnRoad = true;
 	}
 }
 
@@ -127,13 +129,15 @@ public class TrafficLaneManager : MonoBehaviour {
 	public bool OnlyRaycastWhenActivated = false; // Will only make vehicles raycast once each time they're activated instead of every few frames, useful optimization if your ground height doesn't change (not suitable if cars will be spawned when the terrain is disabled, e.g multistory building where each floor is disabled for optimization)
 	public bool NeverRaycast = false; // Will never raycast, even when spawning. This means the Y will follow the plotted road points and beziers (very useful optimization if your ground height doesn't change and your road beziers are aligned with the ground correctly already)
 
+	public bool EditorDebugMode = false;
+
 	public int MapCount; // Store the count of maps into a variable so the list doesn't need to be constantly counted
 	public List<MapTrafficData> TrafficData = new List<MapTrafficData> ();
 
 	public List<CarData> CarTemplates = new List<CarData>();
-	public List<CarData> CarObjects = new List<CarData> ();
+	private List<CarData> CarObjects = new List<CarData> ();
 
-	public float DistanceBetweenVehicles = 15f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
+	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
 
 	public int TotalAIVehicles { get; set; }
 
@@ -143,7 +147,6 @@ public class TrafficLaneManager : MonoBehaviour {
 	public LayerMask RoadLayer;
 	public LayerMask PlayerLayer;
 	public LayerMask AILayer;
-	public LayerMask DynamicAILayer;
 
 	public GameObject HitParticle;
 	public AudioSource HitSource;
@@ -192,10 +195,10 @@ public class TrafficLaneManager : MonoBehaviour {
 				Time.fixedDeltaTime = 0.012f;
 				Time.maximumDeltaTime = 0.12f; // This might be causing issues with joint jittering (0.01 = 100 FPS) (0.0333 = 30 FPS) (0.0666 = 15 FPS) (0.1 = 10 FPS)
 
-				CameraManager.Instance.SetCameraFarViewDistance(2000f);
-				CameraManager.Instance.SetSkyboxScale(new Vector3(65f, 65f, 65f));
+				//CameraManager.Instance.SetCameraFarViewDistance(2000f);
+				//CameraManager.Instance.SetSkyboxScale(new Vector3(65f, 65f, 65f));
 
-				QualitySettings.SetQualityLevel(1);
+				//QualitySettings.SetQualityLevel(1);
 				break;
 		}
 
@@ -357,6 +360,40 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 
 		Debug.Log ("Done grouping lanes!");
+	}
+
+	[ContextMenu("Auto Create Layers")]
+	public void AutoCreateLayers()
+	{
+		// There's currently no direct way to create layers via script in the editor without using reflection to modify the TagManager asset
+		UnityEditor.SerializedObject TagManager = new UnityEditor.SerializedObject(UnityEditor.AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+		UnityEditor.SerializedProperty LayerProperties = TagManager.FindProperty("layers");
+		int LayerCount = LayerProperties.arraySize;
+		string[] LayersToCreate = new string[3]{"Road", "Player", "AIVehicle"};
+
+		foreach(string WantedLayer in LayersToCreate)
+		{
+			for(int i=0;i < LayerCount;i++)
+			{
+				UnityEditor.SerializedProperty LayerProperty = LayerProperties.GetArrayElementAtIndex(i);
+				string LayerName = LayerProperty.stringValue;
+
+				// If the wanted layer already exists then we can break out of the inner for loop
+				if(LayerName == WantedLayer) break;
+
+				// The first 8 layers are builtin unchangable layers, or skip if this layer isn't blank
+				if(i < 8 || LayerName != string.Empty) continue;
+
+				LayerProperty.stringValue = WantedLayer;
+				break;
+			}
+		}
+
+		TagManager.ApplyModifiedProperties();
+
+		RoadLayer = LayerMask.GetMask("Road");
+		PlayerLayer = LayerMask.GetMask("Player");
+		AILayer = LayerMask.GetMask("AIVehicle");
 	}
 
 	[ContextMenu("Make lane starts face end")]
@@ -670,9 +707,26 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 	}
 
+	private int RaycastCounterFrame = 0;
+	private int FrameCounter = 0;
+
 	void Update()
 	{
 		if(TotalAIVehicles <= 0 || CachedTrafficMonitoredTransformCount <= 0 || CachedActiveMap < 0) return;
+
+		#if UNITY_EDITOR
+			if(EditorDebugMode){
+				RaycastCounterFrame += RaycastsThisFrame;
+				FrameCounter++;
+
+				if(FrameCounter >= 30){
+					Debug.Log("Ran " + RaycastCounterFrame + " raycast" + (RaycastCounterFrame != 1 ? "s" : "") + " in last " + FrameCounter + " frames!");
+
+					FrameCounter = 0;
+					RaycastCounterFrame = 0;
+				}
+			}
+		#endif
 
 		RaycastsThisFrame = 0;
 
