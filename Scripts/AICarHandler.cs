@@ -43,7 +43,7 @@ public class AICarHandler : MonoBehaviour {
 		bool isAi = TrafficLaneManager.Instance.AILayer == (TrafficLaneManager.Instance.AILayer | (1 << Obj.gameObject.layer));
 		bool isPlayer = TrafficLaneManager.Instance.PlayerLayer == (TrafficLaneManager.Instance.PlayerLayer | (1 << Obj.gameObject.layer));
 
-		if ((isPlayer) && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.CarsStopWhenHit) {
+		if ((isPlayer) && SelfCarData.IsOnRoad && TrafficLaneManager.Instance.TrafficActionWhenHit == TrafficLaneManager.ActionWhenHit.StopBecomePhysical) {
 			SelfCarData.IsOnRoad = false;
 			SetHazardLights (true);
 
@@ -96,7 +96,7 @@ public class AICarHandler : MonoBehaviour {
 				}
 
 				if (CrashForce >= 30f) {
-					TLM.HitSource.PlayOneShot (TLM.HitSound, Mathf.Clamp (CrashForce / 40f, 0.3f, 2f));
+					TLM.HitSource.PlayOneShot (TLM.BigHitSound, Mathf.Clamp (CrashForce / 40f, 0.3f, 2f));
 					TLM.HitSource.pitch = Random.Range (0.9f, 1.1f); // So each crash doesn't sound exactly the same
 					TLM.HitSource.transform.position = Obj.contacts [0].point;
 				} else {
@@ -150,4 +150,5 @@ public class AICarHandler : MonoBehaviour {
 			HazardLights_Disabled.localPosition = HLOrigPos;
 		}
 	}
+
 }

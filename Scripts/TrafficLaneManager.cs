@@ -76,6 +76,10 @@ public class CarData {
 	public AudioSource HornAudio { get; set; }
 	public float Speed { get; set; }
 
+	// Not yet implemented
+	//[Range(0f, 1f)]
+	//public float FleeWhenHitChance = 0f; // Similar to GTA when some cars will flee from the player when being hit as they're scared
+
 	public float TimeSinceLastValidRaycast { get; set; }
 	public Vector3 RaycastUpVector { get; set; }
 	public float LastYPoint { get; set; }
@@ -123,35 +127,50 @@ public class SparkData {
 public class TrafficLaneManager : MonoBehaviour {
 	public static TrafficLaneManager Instance;
 
-	public bool CarsStopWhenHit = true; // Suggested true for car games, false for bike games
+	public enum ActionWhenHit { NothingIgnoreCollisions, StopBecomePhysical } // SmartAIDynamicallyRejoin coming soon
+
+	[Header("Functionality Settings")]
+	public ActionWhenHit TrafficActionWhenHit;
+
+	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
+
+	[Header("Performance Optimizations")]
 	public bool ShortRoadOptimization = false; // When true if 1 car on a road is calculation mode 3 then no more calculations will be ran on that road. 
 	//Note! Games with long roads should not use this as it will seem like cars just suddenly freeze or drive inside each other.
 	public bool OnlyRaycastWhenActivated = false; // Will only make vehicles raycast once each time they're activated instead of every few frames, useful optimization if your ground height doesn't change (not suitable if cars will be spawned when the terrain is disabled, e.g multistory building where each floor is disabled for optimization)
 	public bool NeverRaycast = false; // Will never raycast, even when spawning. This means the Y will follow the plotted road points and beziers (very useful optimization if your ground height doesn't change and your road beziers are aligned with the ground correctly already)
 
+	[Header("Debugging")]
 	public bool EditorDebugMode = false;
 
-	public int MapCount; // Store the count of maps into a variable so the list doesn't need to be constantly counted
+	public int MapCount { get; set; } // Store the count of maps into a variable so the list doesn't need to be constantly counted
+
+	[HideInInspector]
 	public List<MapTrafficData> TrafficData = new List<MapTrafficData> ();
 
+	[Header("Vehicle Prefabs")]
 	public List<CarData> CarTemplates = new List<CarData>();
 	private List<CarData> CarObjects = new List<CarData> ();
 
-	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
-
 	public int TotalAIVehicles { get; set; }
 
-	//private Vector3 CachedPlayerPosition;
-	//private Vector3 CachedActiveAIPosition;
+	[Header("Project Settings")]
+	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask RoadLayer;
+	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask PlayerLayer;
+	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask AILayer;
 
-	public LayerMask RoadLayer;
-	public LayerMask PlayerLayer;
-	public LayerMask AILayer;
-
+	[Header("Sounds & Particles")]
 	public GameObject HitParticle;
 	public AudioSource HitSource;
-	public AudioClip HitSound;
+
+	[Space]
+	public AudioClip BigHitSound;
 	public AudioClip SmallHitSound;
+
+	// Not yet implemented
+	//[Space]
+	//public AudioClip FemaleFleeScream;
+	//public AudioClip MaleFleeScream;
 
 	public List<SparkData> SparkPool = new List<SparkData>();
 	private int SparkID = 0;
