@@ -1,4 +1,16 @@
-Version 2 - 26th July 2017
+Setup Guide
+
+#1: Drag Sean-s-Traffic/Prefabs/Traffic Manager.prefab into your scene
+#2: Select the Traffic Manager
+#3: Click "Auto Populate Sounds & Particles" 
+#4: Click "Auto Populate Car Templates"
+#5: Unless you already have layers click "Auto Create Layers & Set Masks"
+#6: Assign an Audio Source for Hit Source or just use the provided prefab in Sean-s-Traffic/Prefabs/Traffic Manager.prefab
+
+Here's an example script for controlling the traffic system: https://pastebin.com/GBtPBPq5
+
+
+Everything below was written for v1 of the traffic system and may be outdated in some places:
 
 - Simple scene setup using existing traffic layouts:
 - Drag "Traffic Manager" into your scene from the Prefabs folder
@@ -28,7 +40,7 @@ Creating a new traffic layout from scratch:
 
 Script notes:
 - Call TrafficLaneManager.Instance.SetActiveMap(MapID) to set which map the traffic should be using (Relative to the order the TrafficData is stored in)
-- Call TrafficLaneManager.Instance.SetActiveVehicle(VehicleTransform) to set the transform of the current active vehicle
+- Call TrafficLaneManager.Instance.AddMonitoredTransform(VehicleTransform) to set the transform of the current active vehicle
 - Call TrafficLaneManager.Instance.DespawnAllTraffic() to destroy and cleanup traffic (you'll need to do this before switching maps etc)
 - Call TrafficLaneManager.Instance.SpawnRandomTrafficVehicle() per vehicle you want to spawn, this can fail if the attempted spawn position is blocked
 - Here's a suggestion for spawning multiple vehicles when entering the level:
@@ -36,20 +48,3 @@ Script notes:
 		TrafficLaneManager.Instance.SpawnRandomTrafficVehicle ();
 
 Having issues or confused by my instructions? Send me an email at sean@i6.com or just ask us directly via chat for help
-
-
-Change Log:
-Version 1:
-- Initial version
-
-Version 2:
-- Packaged all misc scripts and sounds together into the pack
-- Added support for crashing into vehicles and knocking them off the road with physics
-- Fixed issues related to vehicles jittering
-- Timestep now affects performance lot more because it's running withing a FixedUpdate instead of an Update
-- Heavily optimized car despawning/spawning by teleporting cars underground instead of using SetActive(..)
-- Now caching a lot more things improving performance further
-- Stripped out external script references and replaced them with set calls instead e.g SetActiveVehicle(..)
-- Improved documentation and comments
-- Stripped out unused code to improve readability
-- Added car sparks when colliding with vehicles

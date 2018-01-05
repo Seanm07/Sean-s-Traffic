@@ -25,7 +25,7 @@ public class TrafficLaneManagerInspector : Editor {
 		if(GUILayout.Button("Auto Populate Sounds & Particles"))
 			(serializedObject.targetObject as TrafficLaneManager).AutoPopulateSoundsParticles();
 
-		if(GUILayout.Button("Auto Popular Car Templates"))
+		if(GUILayout.Button("Auto Populate Car Templates"))
 			(serializedObject.targetObject as TrafficLaneManager).AutoPopulateCarTemplates();
 
 		if(GUILayout.Button("Auto Create Layers & Set Masks"))
