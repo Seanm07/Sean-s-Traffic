@@ -7,6 +7,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+#if UNITY_EDITOR
+	using UnityEditor;
+#endif
+
 public class AIVehicleLaneData {
 	public int VehicleID; // ID of the AI vehicle currently in this lane
 	public float VehicleProgress; // How far the AI vehicle is between Start and End (0 - 1)
@@ -93,7 +97,7 @@ public class CarData {
 	public bool IsChangingLane { get; set; }
 	public bool IsAllowedOffRoadMovement { get; set; }
 
-	public CarData (GameObject InObj, List<Transform> InWheels, AudioSource InHornAudio, Rigidbody InRigidbody, AICarHandler InCarHandler)
+	public CarData (GameObject InObj, List<Transform> InWheels = default(List<Transform>), AudioSource InHornAudio = null, Rigidbody InRigidbody = null, AICarHandler InCarHandler = null)
 	{
 		VehicleObj = InObj;
 		Wheels = InWheels;
@@ -130,17 +134,25 @@ public class TrafficLaneManager : MonoBehaviour {
 	public enum ActionWhenHit { NothingIgnoreCollisions, StopBecomePhysical } // SmartAIDynamicallyRejoin coming soon
 
 	[Header("Functionality Settings")]
+	[Tooltip("How should the traffic act when the player crashes into them? (Note: Selecting nothing also makes them into solid objects which cannot be pushed)")]
 	public ActionWhenHit TrafficActionWhenHit;
 
+	[Tooltip("Stopping distance between traffic. Setting this too low may cause vehicles to drive inside each other")]
 	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
 
 	[Header("Performance Optimizations")]
+	[Tooltip("If a single car on a road is too far from the player then all no more vehicle calculations will be ran on that road this frame. Do not use with long roads!")]
 	public bool ShortRoadOptimization = false; // When true if 1 car on a road is calculation mode 3 then no more calculations will be ran on that road. 
 	//Note! Games with long roads should not use this as it will seem like cars just suddenly freeze or drive inside each other.
+
+	[Tooltip("When enabled vehicles will only raycast when they are spawned (vehicles spawn as you come in range of them)")]
 	public bool OnlyRaycastWhenActivated = false; // Will only make vehicles raycast once each time they're activated instead of every few frames, useful optimization if your ground height doesn't change (not suitable if cars will be spawned when the terrain is disabled, e.g multistory building where each floor is disabled for optimization)
+
+	[Tooltip("When enabled vehicles will never raycast and their Y position is determined based on the road points and beziers only")]
 	public bool NeverRaycast = false; // Will never raycast, even when spawning. This means the Y will follow the plotted road points and beziers (very useful optimization if your ground height doesn't change and your road beziers are aligned with the ground correctly already)
 
 	[Header("Debugging")]
+	[Tooltip("Logs some extra editor only debug information")]
 	public bool EditorDebugMode = false;
 
 	public int MapCount { get; set; } // Store the count of maps into a variable so the list doesn't need to be constantly counted
@@ -160,11 +172,17 @@ public class TrafficLaneManager : MonoBehaviour {
 	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask AILayer;
 
 	[Header("Sounds & Particles")]
+	[Tooltip("Prefab of the sparks when colliding with traffic,. (Sean-s-Traffic/HitParticle/HitParticle.prefab)")]
 	public GameObject HitParticle;
+
+	[Tooltip("An audio source in your project to use to play vehicle collision sounds. It will be moved to the position of collision on impact")]
 	public AudioSource HitSource;
 
 	[Space]
+	[Tooltip("Sound to play when doing a hard crashing into a vehicle. (Sean-s-Traffic/Vehicle Templates/Sounds/HardCrash.mp3)")]
 	public AudioClip BigHitSound;
+
+	[Tooltip("Sound to play when bumping into another vehicle. (Sean-s-Traffic/Vehicle Templates/Sounds/LowCrash.mp3)")]
 	public AudioClip SmallHitSound;
 
 	// Not yet implemented
@@ -238,11 +256,11 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 
 		switch(MapNames.Count){
-			case 0: UnityEditor.EditorUtility.DisplayDialog ("No maps?", "There's no maps available to ungroup!", "Ok"); return; break;
+			case 0: EditorUtility.DisplayDialog ("No maps?", "There's no maps available to ungroup!", "Ok"); return; break;
 			case 1: SelectedMapID = 0; break;
-			case 2: SelectedMapID = (UnityEditor.EditorUtility.DisplayDialog ("Selected a map", "Which map do you want to ungroup the lanes of?\n(Closing this window will ungroup the last map)", MapNames[0], MapNames[1]) ? 0 : 1); break;
-			case 3: SelectedMapID = UnityEditor.EditorUtility.DisplayDialogComplex ("Select a map", "Which map do you want to ungroup the lanes of?\n(Closing this window will ungroup the last map)", MapNames[0], MapNames[1], MapNames[2]); break;
-			default: UnityEditor.EditorUtility.DisplayDialog ("Too many maps!", "This function isn't built to support over 3 maps, changes need to be made to UngroupAllLanes inside TrafficLaneManager.cs", "Ok"); return; break;
+			case 2: SelectedMapID = (EditorUtility.DisplayDialog ("Selected a map", "Which map do you want to ungroup the lanes of?\n(Closing this window will ungroup the last map)", MapNames[0], MapNames[1]) ? 0 : 1); break;
+			case 3: SelectedMapID = EditorUtility.DisplayDialogComplex ("Select a map", "Which map do you want to ungroup the lanes of?\n(Closing this window will ungroup the last map)", MapNames[0], MapNames[1], MapNames[2]); break;
+			default: EditorUtility.DisplayDialog ("Too many maps!", "This function isn't built to support over 3 maps, changes need to be made to UngroupAllLanes inside TrafficLaneManager.cs", "Ok"); return; break;
 		}
 
 		// Moves all lanes for the selected map to the root and deletes roads + categories
@@ -381,12 +399,45 @@ public class TrafficLaneManager : MonoBehaviour {
 		Debug.Log ("Done grouping lanes!");
 	}
 
+	[ContextMenu("Auto Populate Sounds and Particles")]
+	public void AutoPopulateSoundsParticles()
+	{
+		// Path of this script
+		string CurScriptPath = AssetDatabase.GetAssetPath(MonoScript.FromMonoBehaviour(this));
+		string HitParticlePrefabPath = CurScriptPath.Replace("Scripts/TrafficLaneManager.cs","HitParticle/HitParticle.prefab");
+		string VehicleSoundsPath = CurScriptPath.Replace("Scripts/TrafficLaneManager.cs","Vehicle Templates/Sounds");
+
+		HitParticle = (GameObject)AssetDatabase.LoadAssetAtPath(HitParticlePrefabPath, typeof(GameObject));
+
+		BigHitSound = (AudioClip)AssetDatabase.LoadAssetAtPath(VehicleSoundsPath + "/HardCrash.mp3", typeof(AudioClip));
+		SmallHitSound = (AudioClip)AssetDatabase.LoadAssetAtPath(VehicleSoundsPath + "/LowCrash.wav", typeof(AudioClip));
+	}
+
+	[ContextMenu("Auto Populate Car Templates")]
+	public void AutoPopulateCarTemplates()
+	{
+		// Path of this script
+		string CurScriptPath = AssetDatabase.GetAssetPath(MonoScript.FromMonoBehaviour(this));
+		string VehicleTemplatesPrefabsPath = CurScriptPath.Replace("Scripts/TrafficLaneManager.cs","Vehicle Templates/Prefabs");
+
+		string[] VehiclePrefabs = AssetDatabase.FindAssets("t:prefab", new string[1]{ VehicleTemplatesPrefabsPath });
+
+		Debug.Log("Found " + VehiclePrefabs.Length + " vehicle prefabs in " + VehicleTemplatesPrefabsPath);
+
+		CarTemplates.Clear();
+
+		for(int i=0;i < VehiclePrefabs.Length;i++)
+			CarTemplates.Add(new CarData((GameObject)AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(VehiclePrefabs[i]), typeof(GameObject))));
+
+		Debug.Log("Done assigning vehicle prefabs to car templates!");
+	}
+
 	[ContextMenu("Auto Create Layers")]
 	public void AutoCreateLayers()
 	{
 		// There's currently no direct way to create layers via script in the editor without using reflection to modify the TagManager asset
-		UnityEditor.SerializedObject TagManager = new UnityEditor.SerializedObject(UnityEditor.AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-		UnityEditor.SerializedProperty LayerProperties = TagManager.FindProperty("layers");
+		SerializedObject TagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+		SerializedProperty LayerProperties = TagManager.FindProperty("layers");
 		int LayerCount = LayerProperties.arraySize;
 		string[] LayersToCreate = new string[3]{"Road", "Player", "AIVehicle"};
 
@@ -394,16 +445,21 @@ public class TrafficLaneManager : MonoBehaviour {
 		{
 			for(int i=0;i < LayerCount;i++)
 			{
-				UnityEditor.SerializedProperty LayerProperty = LayerProperties.GetArrayElementAtIndex(i);
+				SerializedProperty LayerProperty = LayerProperties.GetArrayElementAtIndex(i);
 				string LayerName = LayerProperty.stringValue;
 
 				// If the wanted layer already exists then we can break out of the inner for loop
-				if(LayerName == WantedLayer) break;
+				if(LayerName == WantedLayer){
+					Debug.Log("Not creating layer " + WantedLayer + " as it already exists");
+					break;
+				}
 
 				// The first 8 layers are builtin unchangable layers, or skip if this layer isn't blank
 				if(i < 8 || LayerName != string.Empty) continue;
 
 				LayerProperty.stringValue = WantedLayer;
+
+				Debug.Log("New layer " + WantedLayer + " created successfully!");
 				break;
 			}
 		}
@@ -413,6 +469,8 @@ public class TrafficLaneManager : MonoBehaviour {
 		RoadLayer = LayerMask.GetMask("Road");
 		PlayerLayer = LayerMask.GetMask("Player");
 		AILayer = LayerMask.GetMask("AIVehicle");
+
+		Debug.Log("Done creating layers & setting layer masks!");
 	}
 
 	[ContextMenu("Make lane starts face end")]
