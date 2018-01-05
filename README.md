@@ -1,16 +1,16 @@
-Setup Guide
+# Sean's Traffic System Setup Guide
 
-#1: Drag Sean-s-Traffic/Prefabs/Traffic Manager.prefab into your scene
-#2: Select the Traffic Manager
-#3: Click "Auto Populate Sounds & Particles" 
-#4: Click "Auto Populate Car Templates"
-#5: Unless you already have layers click "Auto Create Layers & Set Masks"
-#6: Assign an Audio Source for Hit Source or just use the provided prefab in Sean-s-Traffic/Prefabs/Traffic Manager.prefab
+1. Drag Sean-s-Traffic/Prefabs/Traffic Manager.prefab into your scene
+2. Select the Traffic Manager
+3. Click "Auto Populate Sounds & Particles" 
+4. Click "Auto Populate Car Templates"
+5. Unless you already have layers click "Auto Create Layers & Set Masks"
+6. Assign an Audio Source for Hit Source or just use the provided prefab in Sean-s-Traffic/Prefabs/Traffic Manager.prefab
 
-Here's an example script for controlling the traffic system: https://pastebin.com/GBtPBPq5
+Here's an example script for controlling the traffic system: <https://pastebin.com/GBtPBPq5>
 
 
-Everything below was written for v1 of the traffic system and may be outdated in some places:
+###Everything below was written for v1 of the traffic system and may be outdated in some places:
 
 - Simple scene setup using existing traffic layouts:
 - Drag "Traffic Manager" into your scene from the Prefabs folder
