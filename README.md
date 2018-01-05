@@ -8,7 +8,7 @@
 6. Assign an Audio Source for Hit Source or just use the provided prefab in Sean-s-Traffic/Prefabs/Traffic Manager.prefab
 
 Here's an example script for controlling the traffic system: <https://pastebin.com/GBtPBPq5>
-
+Here's a full example project of how to use the traffic system: <https://i6.com/download/files/Traffic%20System%20Development.rar>
 
 ### Everything below was written for v1 of the traffic system and may be outdated in some places:
 
