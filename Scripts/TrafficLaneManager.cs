@@ -157,7 +157,6 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	public int MapCount { get; set; } // Store the count of maps into a variable so the list doesn't need to be constantly counted
 
-	[HideInInspector]
 	public List<MapTrafficData> TrafficData = new List<MapTrafficData> ();
 
 	[Header("Vehicle Prefabs")]
