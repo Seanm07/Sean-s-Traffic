@@ -10,7 +10,7 @@
 Here's an example script for controlling the traffic system: <https://pastebin.com/GBtPBPq5>
 
 
-###Everything below was written for v1 of the traffic system and may be outdated in some places:
+### Everything below was written for v1 of the traffic system and may be outdated in some places:
 
 - Simple scene setup using existing traffic layouts:
 - Drag "Traffic Manager" into your scene from the Prefabs folder
