@@ -131,9 +131,14 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	public enum ActionWhenHit { NothingIgnoreCollisions, StopBecomePhysical, SmartAIDynamicallyRejoin }
 
+	public enum ActionWhenFar { MoveInactiveUnderground, DisableGameObject }
+
 	[Header("Functionality Settings")]
 	[Tooltip("How should the traffic act when the player crashes into them? (Note: Selecting nothing also makes them into solid objects which cannot be pushed)")]
 	public ActionWhenHit TrafficActionWhenHit;
+
+	[Tooltip("What we should do with inactive vehicles far away from the player (Moving them underground is faster as long as you don't have a HUGE amount of vehicles e.g >200 as the rigidbodies still process some stuff no matter what you do until the gameobject is disabled")]
+	public ActionWhenFar TrafficActionWhenFar;
 
 	[Tooltip("Stopping distance between traffic. Setting this too low may cause vehicles to drive inside each other")]
 	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
@@ -175,7 +180,7 @@ public class TrafficLaneManager : MonoBehaviour {
 	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask AILayer;
 	[Tooltip("Context Menu > Auto Create Layers to auto set")]public LayerMask ObstacleLayer;
 
-	[Header("Sounds & Particles")]
+	[Header("Sounds, Particles, Materials")]
 	[Tooltip("Prefab of the sparks when colliding with traffic,. (Sean-s-Traffic/HitParticle/HitParticle.prefab)")]
 	public GameObject HitParticle;
 
@@ -189,18 +194,12 @@ public class TrafficLaneManager : MonoBehaviour {
 	[Tooltip("Sound to play when bumping into another vehicle. (Sean-s-Traffic/Vehicle Templates/Sounds/LowCrash.mp3)")]
 	public AudioClip SmallHitSound;
 
-	// Coming soon when pedestrians are added
-	//[Space]
-	//public AudioClip FemaleFleeScream;
-	//public AudioClip MaleFleeScream;
+	[Tooltip("Burnt car material used after a car has been destroyed and explodes")]
+	public Material BurntMaterial;
 
-	private int RaycastCounterFrame = 0;
-	private int FrameCounter = 0;
-
-	private int CalcMode3Count = 0;
-	private int CalcMode2Count = 0;
-	private int CalcMode1Count = 0;
-	private int CalcMode0Count = 0;
+	[Tooltip("Prefab of the smoke instantiated when a car is damaged")] public GameObject SmokeParticlesTemplate;
+	[Tooltip("Prefab of the fire instantiated when a car is about to explode")] public GameObject FireParticlesTemplate;
+	[Tooltip("Prefab of the explosion instantiated when a car explodes")] public GameObject ExplosionParticlesTemplate;
 
 	public List<SparkData> SparkPool = new List<SparkData>();
 	private int SparkID = 0;
@@ -265,13 +264,13 @@ public class TrafficLaneManager : MonoBehaviour {
 				for (int LaneID = CurRoad.childCount - 1; LaneID >= 0; LaneID--) {
 					Transform CurLane = CurRoad.GetChild (LaneID);
 
-					// Unparent the lane
-					CurLane.SetParent (null);
+					// Unparent the lane without cluttering the root of the hierarchy
+					CurLane.SetParent (transform);
 
 					// Moves the lane to the bottom of the hierarchy
 					CurLane.SetAsLastSibling ();
 
-					CurLane.name = "Start Lane 0";
+					CurLane.name = "Lane (Ungrouped)";
 				}
 			}
 		}
@@ -695,6 +694,11 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	private int CachedTrafficMonitoredTransformCount;
 
+	public List<VehicleTrafficData> GetCarData()
+	{
+		return CarObjects;
+	}
+
 	public void SetActiveMap(int MapID)
 	{
 		CachedActiveMap = MapID;
@@ -763,6 +767,14 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 	}
 
+	private int RaycastCounterFrame = 0;
+	private int FrameCounter = 0;
+
+	public int CalcMode3Count = 0;
+	public int CalcMode2Count = 0;
+	public int CalcMode1Count = 0;
+	public int CalcMode0Count = 0;
+
 	void Update()
 	{
 		if(TotalAIVehicles <= 0 || CachedTrafficMonitoredTransformCount <= 0 || CachedActiveMap < 0) return;
@@ -812,12 +824,12 @@ public class TrafficLaneManager : MonoBehaviour {
 						// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
 						if(CurCarData.IsOnRoad || CurCarData.IsAllowedOffRoadMovement){
 							// If the wanted position is very far from the target move it instantly without interpolation
-							if(CurCarData.VehicleRigidbody.position != DespawnCarPosition){
+							if((TrafficActionWhenFar == ActionWhenFar.MoveInactiveUnderground && CurCarData.VehicleRigidbody.position != DespawnCarPosition) || (TrafficActionWhenFar == ActionWhenFar.DisableGameObject  && CurCarData.VehicleRigidbody.position != DespawnCarPosition)){
 								// Move the vehicle rigidbody to the wanted position
 								if(CurCarData.IsAllowedOffRoadMovement || CurCarData.IsChangingLane){
-									CurCarData.VehicleRigidbody.transform.position = (Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset, 15f * Time.deltaTime));
+									CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset;//(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset, 155f * Time.deltaTime));
 								} else {
-									CurCarData.VehicleRigidbody.transform.position = (Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 15f * Time.deltaTime));
+									CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition; //(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 155f * Time.deltaTime));
 								}
 							} else {
 								CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
@@ -953,7 +965,8 @@ public class TrafficLaneManager : MonoBehaviour {
 								// Set the AI vehicle back on the road
 								CurCarData.IsOnRoad = true;
 								CurCarData.IsAllowedOffRoadMovement = false;
-								CurCarData.CarHandler.SetHazardsActive(false);
+								//CurCarData.CarHandler.SetHazardsActive(false);
+								CurCarData.CarHandler.ResetVehicle(); // Resets health, particles and hazards
 
 								CurCarData.VehicleRigidbody.isKinematic = true;
 								CurCarData.VehicleRigidbody.useGravity = false;
@@ -971,7 +984,6 @@ public class TrafficLaneManager : MonoBehaviour {
 					}
 
 					CurCarData.Speed = CurVehicleLaneData.VehicleSpeed;
-
 
 					// We only need the vehicle position at certain times so wrap it with this if statement for optimization
 					if (CurVehicleLaneData.CalculationMode < 3 || CurVehicleLaneData.TimeUntilNextDistanceCheck <= 0f){
@@ -1263,16 +1275,35 @@ public class TrafficLaneManager : MonoBehaviour {
 
 				CurCarData.CarHandler.SetWheelCollidersActive(false);
 
-				// We move the car underground AFTER disabling collisions, otherwise moving cars underground would cause them all to collider together!
-				CurCarData.VehicleRigidbody.position = DespawnCarPosition; // Much cheaper than toggling the object or renderer (we ran tests)
+				switch(TrafficActionWhenFar)
+				{
+					case ActionWhenFar.MoveInactiveUnderground:
+						// We move the car underground AFTER disabling collisions, otherwise moving cars underground would cause them all to collider together!
+						CurCarData.VehicleRigidbody.position = DespawnCarPosition; // Much cheaper than toggling the object or renderer (we ran tests)
+						break;
 
-				// sigh lets try disable too
-				//CurCarData.VehicleObj.SetActive(false);
+					case ActionWhenFar.DisableGameObject:
+						// BROKEN
+						break;
+				}
 			}
 				
 			return 0.5f; // Half a second should be enough time to switch calculation mode before we get too close
 		} else if (Distance >= 20000f * DeviceTierAdjustment) {
 			if(LaneData.CalculationMode != 2){
+				switch(TrafficActionWhenFar)
+				{
+					case ActionWhenFar.MoveInactiveUnderground:
+						// No need to do anything, the AlignToRoad call sets the vehicle position correctly
+						break;
+
+					case ActionWhenFar.DisableGameObject:
+						if(!CurCarData.VehicleRigidbody){
+							CurCarData.VehicleRigidbody = CurCarData.VehicleObj.AddComponent<Rigidbody>();
+						}
+						break;
+				}
+
 				switch(LaneData.CalculationMode)
 				{
 					case 3: CalcMode3Count--; break;
@@ -1295,6 +1326,8 @@ public class TrafficLaneManager : MonoBehaviour {
 					CurCarData.CarHandler.SetWheelCollidersActive(false);
 
 					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+
+					CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
 				} else {
 					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
 					CurCarData.VehicleRigidbody.isKinematic = false;
@@ -1313,6 +1346,17 @@ public class TrafficLaneManager : MonoBehaviour {
 			return (CurCarData.IsOnRoad ? 0.2f : 3f);
 		} else if(Distance >= 1000f * DeviceTierAdjustment){
 			if(LaneData.CalculationMode != 1){
+				switch(TrafficActionWhenFar)
+				{
+					case ActionWhenFar.MoveInactiveUnderground:
+						// No need to do anything, the AlignToRoad call sets the vehicle position correctly
+						break;
+
+					case ActionWhenFar.DisableGameObject:
+						// BROKEN
+						break;
+				}
+
 				switch(LaneData.CalculationMode)
 				{
 					case 3: CalcMode3Count--; break;
@@ -1335,6 +1379,8 @@ public class TrafficLaneManager : MonoBehaviour {
 					CurCarData.CarHandler.SetWheelCollidersActive(false);
 
 					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+
+					CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
 				} else {
 					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.None;
 					CurCarData.VehicleRigidbody.isKinematic = false;
@@ -1348,6 +1394,17 @@ public class TrafficLaneManager : MonoBehaviour {
 			return (CurCarData.IsOnRoad ? 0.05f : 3f); // This needs to be updated more often than others as the player is pretty close to this vehicle
 		} else {
 			if(LaneData.CalculationMode != 0){
+				switch(TrafficActionWhenFar)
+				{
+					case ActionWhenFar.MoveInactiveUnderground:
+						// No need to do anything, the AlignToRoad call sets the vehicle position correctly
+						break;
+
+					case ActionWhenFar.DisableGameObject:
+						// BROKEN
+						break;
+				}
+
 				switch(LaneData.CalculationMode)
 				{
 					case 3: CalcMode3Count--; break;
@@ -1363,6 +1420,8 @@ public class TrafficLaneManager : MonoBehaviour {
 				if(CurCarData.IsOnRoad){
 					// Make sure to move the AI onto the road before enabling collisions or they'll explode as they hit anyone else moving
 					AlignToRoad(CurCarData, CurLane, LaneData, Position, 1f, true);
+
+					CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
 
 					// Allow the car rigidbody to detect collisions
 					CurCarData.VehicleRigidbody.interpolation = RigidbodyInterpolation.Interpolate;
@@ -1554,16 +1613,16 @@ public class TrafficLaneManager : MonoBehaviour {
 					}
 
 					// If the player is behind AI with sirens on then the AI will move to the furthest left lane and slow down
-					//if(VehicleManager.Instance.IsActiveVehicleSirenOn()){
+					/*if(VehicleManager.Instance.IsActiveVehicleSirenOn()){
 						// We onlt need to check if the player is behind the vehicle as if the player is far away the traffic won't be in calculation mode 0 anyway
-						//if(Vector3.Dot(GetVector2NoY(StartDirection * Vector3.back), (FlatMonitoredPosition - StartCenter).normalized) >= 0){
-							//Vector2 SirenStartRightDirection = GetVector2NoY(StartDirection * Vector3.right);
+						if(Vector3.Dot(GetVector2NoY(StartDirection * Vector3.back), (FlatMonitoredPosition - StartCenter).normalized) >= 0){
+							Vector2 SirenStartRightDirection = GetVector2NoY(StartDirection * Vector3.right);
 
-							//if(Vector2.Dot(SirenStartRightDirection, (FlatMonitoredPosition - (StartCenter - (SirenStartRightDirection * LaneWidth))).normalized) >= 0)
-							//	if(Vector2.Dot(-SirenStartRightDirection, (FlatMonitoredPosition - (StartCenter + (SirenStartRightDirection * LaneWidth))).normalized) >= 0)
-							//		return BlockageType.PlayerSiren;
-						//}
-					//}
+							if(Vector2.Dot(SirenStartRightDirection, (FlatMonitoredPosition - (StartCenter - (SirenStartRightDirection * LaneWidth))).normalized) >= 0)
+								if(Vector2.Dot(-SirenStartRightDirection, (FlatMonitoredPosition - (StartCenter + (SirenStartRightDirection * LaneWidth))).normalized) >= 0)
+									return BlockageType.PlayerSiren;
+						}
+					}*/
 				}
 			}
 		}

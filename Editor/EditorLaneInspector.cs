@@ -7,11 +7,6 @@ using UnityEditor;
 //[CanEditMultipleObjects]
 public class EditorLaneInspector : Editor {
 
-	void OnEnable()
-	{
-		
-	}
-
 	// This function is called for all selected targets so targets is not used (and cannot be used) in this function
 	void OnSceneGUI()
 	{
@@ -22,6 +17,14 @@ public class EditorLaneInspector : Editor {
 		} else {
 			DrawHandles (Curve);
 		}
+
+		if ( Event.current.type == EventType.KeyUp ){
+            if ( Event.current.keyCode == KeyCode.N ) Curve.CreateNewLaneFromEndPos();
+            if ( Event.current.keyCode == KeyCode.M ) Curve.CreateNewLaneFromEndPos();
+            if ( Event.current.keyCode == KeyCode.B ) Curve.AddBezierPoint();
+            if ( Event.current.keyCode == KeyCode.G ) Curve.SnapPointsToRoadSurface();
+            if ( Event.current.keyCode == KeyCode.I ) Curve.IsIntersection = !Curve.IsIntersection;
+        }
 	}
 
 	void DrawHandles(LaneBezierHandler Curve)
@@ -51,6 +54,11 @@ public class EditorLaneInspector : Editor {
 			ShowPoint (0, Curve, HandleRotation);
 			ShowPoint (3, Curve, HandleRotation);
 		}
+
+		Handles.color = Color.black;
+        Handles.SphereCap( 1180, Curve.transform.position, Quaternion.identity, 0.5f );
+        Handles.color = Color.yellow;
+        Handles.SphereCap( 1180, Curve.EndPoint.position, Quaternion.identity, 0.5f );
 
 		HandleUtility.Repaint ();
 	}

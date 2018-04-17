@@ -90,9 +90,6 @@ public class AICarHandler : MonoBehaviour {
 	// Store the time since last impact so we can limit how often sparks are created and crash sounds are played
 	private float TimeSinceLastImpact;
 
-	public ParticleSystem SmokeParticles;
-	private ParticleSystem.EmissionModule SmokeEmission;
-
 	public AICarVehicleData PathData = new AICarVehicleData();
 	public AICarVehicleConfig Config = new AICarVehicleConfig();
 	public AICarInputs Inputs = new AICarInputs();
@@ -101,6 +98,23 @@ public class AICarHandler : MonoBehaviour {
 	private int CurRaycastId = 0;
 
 	private bool CacheIsWheelColliderActive = true;
+
+	public float VehicleHealth = 1f;
+	public bool IsDestroyed = false;
+
+	public AudioSource BurningAudioSource;
+
+	private ParticleSystem SmokeParticles;
+	private ParticleSystem.EmissionModule SmokeEmission;
+	private ParticleSystem.MainModule SmokeMain;
+
+	private ParticleSystem FireParticles;
+	private ParticleSystem.EmissionModule FireEmission;
+
+	private GameObject Explosion;
+
+	public Renderer VehicleBodyRenderer;
+	public List<Material> VehicleBodyMaterials { get; set; }
 
 	public void Setup(Rigidbody NewRigidbody, VehicleTrafficData NewVehicleData, Transform NewHazardsOffTransform, Transform NewHazardsOnTransform)
 	{
@@ -114,10 +128,6 @@ public class AICarHandler : MonoBehaviour {
 
 		TimeSinceLastImpact = 0f;
 
-		// Set the emission module for the smoke particles
-		if(SmokeParticles != null)
-			SmokeEmission = SmokeParticles.emission;
-
 		Config.FrontWheelsInitalRotations.Clear();
 
 		for(int i=0;i < Config.FrontWheels.Count;i++)
@@ -129,15 +139,162 @@ public class AICarHandler : MonoBehaviour {
 			Config.RearWheelsInitialRotations.Add(Config.RearWheels[i].transform.localEulerAngles);
 
 		SelfRigidbody.centerOfMass += Config.CenterOfMass;
+
+		if(VehicleBodyRenderer != null){
+			VehicleBodyMaterials = new List<Material>();
+
+			for(int i=0;i < VehicleBodyRenderer.materials.Length;i++)
+				VehicleBodyMaterials.Add(VehicleBodyRenderer.materials[i]);
+		}
+
+		UpdateVehicleStatus();
+	}
+
+	public void ResetVehicle()
+	{
+		if(IsDestroyed){
+			// Restore the vehicle materials from the burnt material
+			if(VehicleBodyRenderer != null && VehicleBodyMaterials != null && VehicleBodyMaterials.Count > 0)
+				VehicleBodyRenderer.materials = VehicleBodyMaterials.ToArray();
+		}
+
+		VehicleHealth = 1f;
+		IsDestroyed = false;
+		SetHazardsActive(false);
+
+		// Destroy rather than disable because the chances are low that this car will be damaged again
+		// So just cleanup the clear the memory
+		if(SmokeParticles){
+			Destroy(SmokeParticles.gameObject);
+			SmokeEmission = default(ParticleSystem.EmissionModule);
+			SmokeMain = default(ParticleSystem.MainModule);
+		}
+
+		if(FireParticles){
+			Destroy(FireParticles.gameObject);
+			FireEmission = default(ParticleSystem.EmissionModule);
+		}
+
+		if(Explosion) Destroy(Explosion);
+	}
+
+	public void DamageVehicle(float DamageAmount)
+	{
+		VehicleHealth -= DamageAmount / 100f;
+
+		UpdateVehicleStatus();
+	}
+
+	public void UpdateVehicleStatus()
+	{
+		if(IsDestroyed) return;
+
+		// Updates the smoke effect (changing colour and strength of the smoke)
+		if(TrafficLaneManager.Instance.SmokeParticlesTemplate != null && VehicleHealth <= 0.75f){
+			if(SmokeParticles == null){
+				SmokeParticles = GameObject.Instantiate(TrafficLaneManager.Instance.SmokeParticlesTemplate, transform).GetComponent<ParticleSystem>();
+				SmokeParticles.transform.localPosition = new Vector3(0f, 0f, 2.75f);
+				SmokeParticles.transform.localEulerAngles = new Vector3(0f, 180f, 0f);
+				SmokeParticles.transform.localScale = Vector3.one;
+
+				// Set the emission module for the smoke particles
+				SmokeEmission = SmokeParticles.emission;
+				SmokeMain = SmokeParticles.main;
+			}
+
+			ParticleSystem.MinMaxCurve NewCurve = new ParticleSystem.MinMaxCurve();
+			NewCurve.constant = (1f - VehicleHealth) * 2f;
+
+			ParticleSystem.EmissionModule NewEmissionModule = SmokeEmission;
+			NewEmissionModule.rateOverTime = NewCurve;
+
+			ParticleSystem.MainModule NewMainModule = SmokeMain;
+			ParticleSystem.MinMaxGradient NewGradient = new ParticleSystem.MinMaxGradient();
+			NewGradient.color = Color.Lerp(Color.white, Color.gray, 1f - VehicleHealth);
+
+			NewMainModule.startColor = NewGradient;
+		}
+
+		if(TrafficLaneManager.Instance.FireParticlesTemplate != null && VehicleHealth <= 0f){
+			if(FireParticles == null){
+				FireParticles = GameObject.Instantiate(TrafficLaneManager.Instance.FireParticlesTemplate, transform).GetComponent<ParticleSystem>();
+				FireParticles.transform.localPosition = new Vector3(0f, 1.5f, 2.75f);
+				FireParticles.transform.localEulerAngles = new Vector3(-90f, 180f, 0f);
+				FireParticles.transform.localScale = Vector3.one;
+
+				// Set the emission module for the fire particles
+				FireEmission = FireParticles.emission;
+			}
+
+			if(BurningAudioSource != null){
+				if(!BurningAudioSource.isPlaying)
+					BurningAudioSource.Play();
+
+				BurningAudioSource.volume = 1f - VehicleHealth;
+			}
+
+			ParticleSystem.MinMaxCurve NewCurve = new ParticleSystem.MinMaxCurve();
+			NewCurve.constant = (1f - VehicleHealth) * 5f;
+
+			ParticleSystem.EmissionModule NewEmissionModule = FireEmission;
+			NewEmissionModule.rateOverTime = NewCurve;
+		}
+
+		if(TrafficLaneManager.Instance.ExplosionParticlesTemplate != null && VehicleHealth <= -0.5f){
+			if(Explosion == null){
+				Explosion = GameObject.Instantiate(TrafficLaneManager.Instance.ExplosionParticlesTemplate, transform);
+				Explosion.transform.localPosition = Vector3.zero;
+				Explosion.transform.localEulerAngles = Vector3.zero;
+				Explosion.transform.localScale = Vector3.one;
+			}
+
+			OnVehicleDestroyed();
+		}
+	}
+
+	private void OnVehicleDestroyed()
+	{
+		// Suggestion: Call a script to spawn an explosion at transform.position
+
+		IsDestroyed = true;
+
+		// Replace the body materials with the burnt material
+		if(VehicleBodyRenderer != null && VehicleBodyMaterials.Count > 0){
+			Material[] BurntMaterials = new Material[VehicleBodyRenderer.materials.Length];
+
+			for(int i=0; i < VehicleBodyRenderer.materials.Length;i++)
+				BurntMaterials[i] = TrafficLaneManager.Instance.BurntMaterial;
+
+			// Had to set the burnt materials like this because the separate materials in renderer.materials seem to be read only unless you set the whole array
+			VehicleBodyRenderer.materials = BurntMaterials;
+		}
 	}
 
 	// Called from TrafficLaneManager
 	public void TrafficAIUpdate()
 	{
+		if(IsDestroyed){
+			Inputs.InputAcceleration = 0f;
+			Inputs.InputBrake = 1f;
+			Inputs.InputHorizontal = 0f;
+			Inputs.InputVertical = 0f;
+			Inputs.InputNitro = 0f;
+			Inputs.IsHandbrakeActive = true;
+			Inputs.WantedRPM = 0f;
+			Inputs.Speed = 0f;
+			Inputs.SpeedPercent = 0f;
+			return;
+		}
+
 		TimeSinceLastImpact += Time.deltaTime;
 
 		// Update the hazard lights so they can flash on/off when active
 		UpdateHazards();
+
+		if(VehicleHealth <= 0f){
+			VehicleHealth -= Time.deltaTime / 20f;
+			UpdateVehicleStatus();
+		}
 
 		switch(TrafficLaneManager.Instance.TrafficActionWhenHit)
 		{
@@ -795,7 +952,7 @@ public class AICarHandler : MonoBehaviour {
 		PathData.CurPathId = 0;
 		PathData.Path = null;
 
-		if(!SelfVehicleData.IsOnRoad)
+		if(!SelfVehicleData.IsOnRoad && !IsDestroyed)
 			GenerateRejoinPath();
 	}
 
@@ -805,11 +962,21 @@ public class AICarHandler : MonoBehaviour {
 		OnCollisionEnter(null);
 	}
 
+	public void OnWeaponAttack(float Damage)
+	{
+		if(IsDestroyed) return;
+
+		DamageVehicle(Damage * 5f);
+
+		DetachVehicleFromRails();
+	}
+
 	void OnCollisionEnter(Collision Obj)
 	{
+		if(IsDestroyed) return;
+
 		// Make sure it has atleast been 0.1 seconds since the last impact
 		if(TimeSinceLastImpact >= 0.1f){
-
 			TimeSinceLastImpact = 0f;
 
 			TrafficLaneManager TLM = TrafficLaneManager.Instance;
@@ -834,65 +1001,61 @@ public class AICarHandler : MonoBehaviour {
 
 				TLM.HitSource.pitch = Random.Range(0.9f, 1.1f); // Randomly set the pitch of each sound so all crashes don't sound the same
 				TLM.HitSource.transform.position = Obj.contacts[0].point; // Make the sound play from the source of the impact
+
+				if(IsPlayer)
+					DamageVehicle(CrashForce);
 			}
 
-			switch(TLM.TrafficActionWhenHit)
-			{
-				case TrafficLaneManager.ActionWhenHit.NothingIgnoreCollisions:
-					
-					break;
+			// Check if we're still on the road
+			if(SelfVehicleData.IsOnRoad)
+				DetachVehicleFromRails();
 
-				case TrafficLaneManager.ActionWhenHit.StopBecomePhysical:
-					// Check if we're still on the road
-					if(SelfVehicleData.IsOnRoad){
-						SetWheelCollidersActive(true);
-
-						// This traffic vehicle was on the road driving
-						SelfVehicleData.IsOnRoad = false;
-						SetHazardsActive(true);
-
-						SelfRigidbody.isKinematic = false;
-						SelfRigidbody.useGravity = true;
-						SelfRigidbody.interpolation = RigidbodyInterpolation.None;
-
-						// We need to restore the previous player velocity as the vehicle they hit was kinematic
-						// We simulate it having gravity by simply giving it gravity and restoring the previous velocity values
-						if(IsPlayer){
-							//VehicleManager.Instance.PlayerCollisionRegistered();
-							RestorePlayerVelocity();
-						}
-					}
-					break;
-
-				case TrafficLaneManager.ActionWhenHit.SmartAIDynamicallyRejoin:
-					// Check if we're still on the road
-					if(SelfVehicleData.IsOnRoad){
-						SetWheelCollidersActive(true);
-
-						// This traffic vehicle was on the road driving
-						SelfVehicleData.IsOnRoad = false;
-
-						SelfRigidbody.isKinematic = false;
-						SelfRigidbody.useGravity = true;
-						//SelfRigidbody.interpolation = RigidbodyInterpolation.None;
-
-						// We need to restore the previous player velocity as the vehicle they hit was kinematic
-						// We simulate it having gravity by simply giving it gravity and restoring the previous velocity values
-						if(IsPlayer){
-							//VehicleManager.Instance.PlayerCollisionRegistered();
-							RestorePlayerVelocity();
-						}
-
-						//TrafficLaneManager.Instance.AddMonitoredTransform(transform);
-
-						StartCoroutine(InitialRejoinPathDelay());
-					}
-					break;
-
-				default:
-					Debug.LogError("This TrafficLaneManager action when hit does is not setup on how to handle a collision!");
-					break;
+			// We need to restore the previous player velocity as the vehicle they hit was kinematic
+			// We simulate it having gravity by simply giving it gravity and restoring the previous velocity values
+			if(IsPlayer){
+				//VehicleManager.Instance.PlayerCollisionRegistered();
+				RestorePlayerVelocity();
 			}
+		}
+	}
+
+	private void DetachVehicleFromRails()
+	{
+		if(IsDestroyed) return;
+
+		switch(TrafficLaneManager.Instance.TrafficActionWhenHit)
+		{
+			case TrafficLaneManager.ActionWhenHit.NothingIgnoreCollisions:
+				
+				break;
+
+			case TrafficLaneManager.ActionWhenHit.StopBecomePhysical:
+				SetWheelCollidersActive(true);
+
+				// This traffic vehicle was on the road driving
+				SelfVehicleData.IsOnRoad = false;
+				SetHazardsActive(true);
+
+				SelfRigidbody.isKinematic = false;
+				SelfRigidbody.useGravity = true;
+				SelfRigidbody.interpolation = RigidbodyInterpolation.None;
+				break;
+
+			case TrafficLaneManager.ActionWhenHit.SmartAIDynamicallyRejoin:
+				SetWheelCollidersActive(true);
+
+				// This traffic vehicle was on the road driving
+				SelfVehicleData.IsOnRoad = false;
+
+				SelfRigidbody.isKinematic = false;
+				SelfRigidbody.useGravity = true;
+
+				StartCoroutine(InitialRejoinPathDelay());
+				break;
+
+			default:
+				Debug.LogError("This TrafficLaneManager action when hit does is not setup on how to handle a collision!");
+				break;
 		}
 	}
 
@@ -944,7 +1107,8 @@ public class AICarHandler : MonoBehaviour {
 	private void UpdateHazards()
 	{
 		if(IsHazardsActive){
-			if(TimeSinceHazardsChanged >= 0.5f){
+			if(TimeSinceHazardsChanged >= 1f){
+				TimeSinceHazardsChanged = 0f;
 				HazardsCurrentlyActive = !HazardsCurrentlyActive;
 
 				HazardsActiveTransform.localPosition = HazardsCurrentlyActive ? HazardsActivePos : HazardsDisabledPos;

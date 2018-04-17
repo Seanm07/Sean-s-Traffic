@@ -132,6 +132,13 @@ public class LaneBezierHandler : MonoBehaviour {
 			NewLaneEnd.AddComponent<LaneBezierHandler> ();
 
 			UnityEditor.Selection.activeObject = NewLane;
+
+			float projectionDistance = 8f;
+            NewLane.transform.parent = this.transform.parent;
+            NewLane.transform.position = EndPoint.position;
+            Vector3 currentLaneVector =  ( EndPoint.position - this.transform.position ).normalized;
+            currentLaneVector.Scale( new Vector3( projectionDistance, 0, projectionDistance ) );
+            NewLaneEnd.transform.position = NewLane.transform.position + currentLaneVector;
 		}
 
 		public void CreateNewLaneFromStartPos()
@@ -146,6 +153,13 @@ public class LaneBezierHandler : MonoBehaviour {
 			NewLaneEnd.AddComponent<LaneBezierHandler> ();
 
 			UnityEditor.Selection.activeObject = NewLane;
+
+			float projectionDistance = 8f;
+            NewLane.transform.parent = this.transform.parent;
+            NewLane.transform.position = EndPoint.position;
+            Vector3 currentLaneVector =  ( EndPoint.position - this.transform.position ).normalized;
+            currentLaneVector.Scale( new Vector3( projectionDistance, 0, projectionDistance ) );
+            NewLaneEnd.transform.position = NewLane.transform.position + currentLaneVector;
 		}
 	#endif
 
