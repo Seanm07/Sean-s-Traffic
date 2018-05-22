@@ -1,4 +1,4 @@
-﻿// Version 4
+﻿// Version 4.2
 
 using System.Collections;
 using System.Collections.Generic;
@@ -133,12 +133,20 @@ public class TrafficLaneManager : MonoBehaviour {
 
 	public enum ActionWhenFar { MoveInactiveUnderground, DisableGameObject }
 
+	public enum UpdateModes { Update, FixedUpdate }
+
 	[Header("Functionality Settings")]
 	[Tooltip("How should the traffic act when the player crashes into them? (Note: Selecting nothing also makes them into solid objects which cannot be pushed)")]
 	public ActionWhenHit TrafficActionWhenHit;
 
 	[Tooltip("What we should do with inactive vehicles far away from the player (Moving them underground is faster as long as you don't have a HUGE amount of vehicles e.g >200 as the rigidbodies still process some stuff no matter what you do until the gameobject is disabled")]
 	public ActionWhenFar TrafficActionWhenFar;
+
+	[Tooltip("When to update the physical position of the vehicle transforms (Match this with your camera movement) if the vehicles are jittering try switching this!")]
+	public UpdateModes UpdateMovementOn;
+
+	[Tooltip("When to update the vehicle calculations")]
+	public UpdateModes UpdateCalculationsOn;
 
 	[Tooltip("Stopping distance between traffic. Setting this too low may cause vehicles to drive inside each other")]
 	public float DistanceBetweenVehicles = 10f; // This value is divided by the size of the road to give a consistant distance between vehicles (it's not in meters)
@@ -207,6 +215,29 @@ public class TrafficLaneManager : MonoBehaviour {
 	private GraphicsTier CachedGraphicsTier;
 
 	private Vector3 DespawnCarPosition = new Vector3(0f, -10000f, 0f);
+
+	public enum BlockageType { Player, AI, PlayerSiren, None }
+
+	private float LaneWidth = 2f;
+
+	private int CachedActiveMap = -1;
+	private MapTrafficData ActiveMapTrafficData;
+
+	// List of transforms which is used by the traffic to check for blockages
+	private List<Transform> TrafficMonitoredTransforms = new List<Transform>();
+
+	private int CachedTrafficMonitoredTransformCount;
+
+	private int RaycastCounterFrame = 0;
+	private int FrameCounter = 0;
+
+	public int CalcMode3Count = 0;
+	public int CalcMode2Count = 0;
+	public int CalcMode1Count = 0;
+	public int CalcMode0Count = 0;
+
+	private int RaycastsThisFrame = 0;
+	private int MaxRaycastsPerFrame;
 
 	public void CreateSparkPool()
 	{
@@ -686,60 +717,20 @@ public class TrafficLaneManager : MonoBehaviour {
 	}
 	#endif
 
-	private int CachedActiveMap = -1;
-	private MapTrafficData ActiveMapTrafficData;
-
-	// List of transforms which is used by the traffic to check for blockages
-	private List<Transform> TrafficMonitoredTransforms = new List<Transform>();
-
-	private int CachedTrafficMonitoredTransformCount;
-
-	public List<VehicleTrafficData> GetCarData()
-	{
-		return CarObjects;
-	}
-
-	public void SetActiveMap(int MapID)
-	{
-		CachedActiveMap = MapID;
-
-		ActiveMapTrafficData = TrafficData[CachedActiveMap];
-
-		ResetAllClosedRoads();
-	}
-
-	public void ClearMonitoredTransforms()
-	{
-		TrafficMonitoredTransforms.Clear();
-		CachedTrafficMonitoredTransformCount = 0;
-	}
-
-	public void AddMonitoredTransform(Transform InTransform)
-	{
-		TrafficMonitoredTransforms.Add(InTransform);
-		CachedTrafficMonitoredTransformCount++;
-	}
-
-	public void RemoveMonitoredTransform(Transform InTransform)
-	{
-		for(int i=0;i < TrafficMonitoredTransforms.Count;i++)
-		{
-			if(TrafficMonitoredTransforms[i] == InTransform){
-				TrafficMonitoredTransforms.RemoveAt(i);
-				CachedTrafficMonitoredTransformCount--;
-			}
-		}
-
-
-	}
-
 	void FixedUpdate()
 	{
 		if(TotalAIVehicles <= 0 || CachedTrafficMonitoredTransformCount <= 0 || CachedActiveMap < 0) return;
 
+		float DeltaTime = Time.fixedDeltaTime;
+
 		// Update the progress of AI vehicles in the road lanes
 		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
 			TrafficRoadData CurRoad = ActiveMapTrafficData.RoadData[RoadID];
+
+			if(UpdateCalculationsOn == UpdateModes.FixedUpdate){
+				// Update the movement of all AI inside lanes of this road
+				UpdateAIMovement (ActiveMapTrafficData.RoadData[RoadID], DeltaTime);
+			}
 
 			bool IsRoadNearPlayer = true; // This is set to false and we stop evaluating lanes and vehicles in the lane once a single car is not in calculation mode 2 or less on this road
 
@@ -755,9 +746,28 @@ public class TrafficLaneManager : MonoBehaviour {
 					if(CurVehicle.CalculationMode <= 2){
 						VehicleTrafficData CurCarData = CarObjects[CurVehicle.VehicleID];
 
+						if(CurCarData.VehicleRigidbody == null) return;
+
 						// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
 						if(!CurCarData.IsOnRoad && !CurCarData.IsAllowedOffRoadMovement){
 							CurCarData.CarHandler.TrafficAIFixedUpdate();
+						}
+
+						if(UpdateMovementOn == UpdateModes.FixedUpdate){
+							// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
+							if(!CurCarData.CarHandler.IsDestroyed && (CurCarData.IsOnRoad || CurCarData.IsAllowedOffRoadMovement)){
+								// If the wanted position is very far from the target move it instantly without interpolation
+								if((TrafficActionWhenFar == ActionWhenFar.MoveInactiveUnderground && CurCarData.VehicleRigidbody.position != DespawnCarPosition) || (TrafficActionWhenFar == ActionWhenFar.DisableGameObject  && CurCarData.VehicleRigidbody.position != DespawnCarPosition)){
+									// Move the vehicle rigidbody to the wanted position
+									if(CurCarData.IsAllowedOffRoadMovement || CurCarData.IsChangingLane){
+										CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset;//(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset, 155f * Time.deltaTime));
+									} else {
+										CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition; //(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 155f * Time.deltaTime));
+									}
+								} else {
+									CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
+								}
+							}
 						}
 					} else {
 						IsRoadNearPlayer = !ShortRoadOptimization;
@@ -766,14 +776,6 @@ public class TrafficLaneManager : MonoBehaviour {
 			}
 		}
 	}
-
-	private int RaycastCounterFrame = 0;
-	private int FrameCounter = 0;
-
-	public int CalcMode3Count = 0;
-	public int CalcMode2Count = 0;
-	public int CalcMode1Count = 0;
-	public int CalcMode0Count = 0;
 
 	void Update()
 	{
@@ -843,35 +845,48 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 	}
 
+	public List<VehicleTrafficData> GetCarData()
+	{
+		return CarObjects;
+	}
+
+	public void SetActiveMap(int MapID)
+	{
+		CachedActiveMap = MapID;
+
+		ActiveMapTrafficData = TrafficData[CachedActiveMap];
+
+		ResetAllClosedRoads();
+	}
+
+	public void ClearMonitoredTransforms()
+	{
+		TrafficMonitoredTransforms.Clear();
+		CachedTrafficMonitoredTransformCount = 0;
+	}
+
+	public void AddMonitoredTransform(Transform InTransform)
+	{
+		TrafficMonitoredTransforms.Add(InTransform);
+		CachedTrafficMonitoredTransformCount++;
+	}
+
+	public void RemoveMonitoredTransform(Transform InTransform)
+	{
+		for(int i=0;i < TrafficMonitoredTransforms.Count;i++)
+		{
+			if(TrafficMonitoredTransforms[i] == InTransform){
+				TrafficMonitoredTransforms.RemoveAt(i);
+				CachedTrafficMonitoredTransformCount--;
+			}
+		}
+	}
+
 	public void DespawnAllTraffic()
 	{
 		if(TotalAIVehicles <= 0 || CachedActiveMap < 0) return;
 
 		StartCoroutine(DoDespawnAllTraffic());
-	}
-
-	private IEnumerator DoDespawnAllTraffic()
-	{
-		TotalAIVehicles = 0;
-
-		for (int i = 0; i < CarObjects.Count; i++){
-			Destroy (CarObjects [i].VehicleObj);
-
-			// Wait a frame for every 20 vehicles processed
-			if(i % 20 == 0) yield return null;
-		}
-
-		CarObjects.Clear ();
-
-		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadData.Count; RoadID++) {
-			for (int LaneID = 0; LaneID < ActiveMapTrafficData.RoadData [RoadID].Lanes.Count; LaneID++) {
-				TrafficLaneData CurLane = ActiveMapTrafficData.RoadData [RoadID].Lanes [LaneID];
-
-				CurLane.ActiveAIVehicles.Clear ();
-				CurLane.TotalActiveAIVehicles = 0;
-				CurLane.TotalInactiveAIVehicles = 0;
-			}
-		}
 	}
 
 	public void SpawnRandomTrafficVehicle(int ForceRoad = -1, int ForceLane = -1)
@@ -932,13 +947,21 @@ public class TrafficLaneManager : MonoBehaviour {
 		//MaxRaycastsPerFrame = Mathf.CeilToInt(((float)TotalAIVehicles / 100f) * ((CachedGraphicsTier == GraphicsTier.Tier1) ? 1.75f : 2f));
 	}
 
-	public void UpdateAIMovement(TrafficRoadData CurRoad, float DeltaTime)
+	private void UpdateAIMovement(TrafficRoadData CurRoad, float DeltaTime)
 	{
+		#if UNITY_EDITOR 
+		if(EditorDebugMode) UnityEngine.Profiling.Profiler.BeginSample("UpdateAIMovement");
+		#endif
+
 		// This is assigned all the way out here because getting Vector3.zero is actually pretty expensive when called a lot
 		// and CurVehiclePosition will never be used unless it has its variable set at the start of the iteration anyway
 		Vector3 CurVehiclePosition = Vector3.zero;
 
 		for (int LaneID = 0; LaneID < CurRoad.LaneCount; LaneID++) {
+			#if UNITY_EDITOR 
+			if(EditorDebugMode) UnityEngine.Profiling.Profiler.BeginSample("Lane Iteration");
+			#endif
+
 			TrafficLaneData CurLane = CurRoad.Lanes [LaneID];
 
 			int VehicleCount = CurLane.TotalActiveAIVehicles;
@@ -947,8 +970,12 @@ public class TrafficLaneManager : MonoBehaviour {
 				float RoadLength = CurLane.Bezier.GetLength ();
 				float CarDistance = DistanceBetweenVehicles / RoadLength; // Min distance between vehicles
 
-				// Iterate backwards so if any vehicles are removed from the lane it won't affect our iteration
+				// Iterate backwards so if any vehicles are removed from the lane they won't affect our iteration
 				for (int i = VehicleCount - 1; i >= 0; i--) {
+					#if UNITY_EDITOR 
+					if(EditorDebugMode) UnityEngine.Profiling.Profiler.BeginSample("Vehicle Iteration");
+					#endif
+
 					AIVehicleLaneData CurVehicleLaneData = CurLane.ActiveAIVehicles [i];
 					VehicleTrafficData CurCarData = CarObjects[CurVehicleLaneData.VehicleID];
 
@@ -1090,7 +1117,8 @@ public class TrafficLaneManager : MonoBehaviour {
 						AlignToRoad (CurCarData, CurLane, CurVehicleLaneData, CurVehiclePosition, DeltaTime, false);
 					}
 
-					CurVehicleLaneData.VehicleProgress += (CurVehicleLaneData.VehicleSpeed / RoadLength) * DeltaTime * 15f;
+					//CurVehicleLaneData.VehicleProgress += (CurVehicleLaneData.VehicleSpeed / RoadLength) * DeltaTime * 15f;
+					CurVehicleLaneData.VehicleProgress = Mathf.MoveTowards(CurVehicleLaneData.VehicleProgress, 1f, (CurVehicleLaneData.VehicleSpeed / RoadLength) * DeltaTime * 15f);
 
 					//CurCarData.CarHandler.gameObject.name = "P[" + CurVehicleLaneData.VehicleProgress + "] S[" + CurVehicleLaneData.VehicleSpeed + "] RL[" + RoadLength + "]";
 
@@ -1148,17 +1176,26 @@ public class TrafficLaneManager : MonoBehaviour {
 					CurVehicleLaneData.TimeUntilNextProgressCheck -= DeltaTime;
 					CurVehicleLaneData.TimeUntilNextDistanceCheck -= DeltaTime;
 					CurVehicleLaneData.TimeUntilHornCanBeUsedAgain -= DeltaTime;
+
+					#if UNITY_EDITOR 
+					if(EditorDebugMode) UnityEngine.Profiling.Profiler.EndSample();
+					#endif
 				}
 			}
+			#if UNITY_EDITOR 
+			if(EditorDebugMode) UnityEngine.Profiling.Profiler.EndSample();
+			#endif
 		}
+		#if UNITY_EDITOR 
+		if(EditorDebugMode) UnityEngine.Profiling.Profiler.EndSample();
+		#endif
 	}
-
-	private int RaycastsThisFrame = 0;
-	private int MaxRaycastsPerFrame;
 
 	private void AlignToRoad(VehicleTrafficData CurCarData, TrafficLaneData CurLane, AIVehicleLaneData CurVehicleLaneData, Vector3 WantedVehiclePosition, float DeltaTime, bool ForceRaycast = false)
 	{
 		int CalcMode = CurVehicleLaneData.CalculationMode;
+
+		if(CurCarData.VehicleObj == null) return;
 
 		switch (CalcMode) {
 			case 0:
@@ -1188,7 +1225,7 @@ public class TrafficLaneManager : MonoBehaviour {
 								if(ForceRaycast){// || CalcMode == 0){
 									WantedVehiclePosition.y = Hit.point.y; // This will only be called when we're forcing a raycast (happens when spawning, switching lanes or as the calculation mode changes)
 								} else {
-									WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, Hit.point.y, 30f * DeltaTime);
+									WantedVehiclePosition.y = Mathf.MoveTowards(CurCarData.LastYPoint, Hit.point.y, 200f * DeltaTime);
 								}
 
 								CurCarData.TimeSinceLastValidRaycast = 0f;
@@ -1209,13 +1246,17 @@ public class TrafficLaneManager : MonoBehaviour {
 						if(CurCarData.IsOnRoad)
 							CurCarData.VehicleObj.transform.up = CurCarData.RaycastUpVector;
 
-						WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, CurCarData.RaycastYPoint, 30f * DeltaTime);
+						WantedVehiclePosition.y = Mathf.MoveTowards(CurCarData.LastYPoint, CurCarData.RaycastYPoint, 200f * DeltaTime);
 						CurCarData.LastYPoint = WantedVehiclePosition.y;
 					}
 				}
 
-				if(CurCarData.IsOnRoad)
+				if(CurCarData.IsOnRoad){
+					if(NeverRaycast && ForceRaycast)
+						CurCarData.VehicleObj.transform.up = Vector3.up;
+
 					CurCarData.VehicleObj.transform.Rotate(Vector3.up, Mathf.DeltaAngle(CurCarData.VehicleObj.transform.eulerAngles.y, WantedRotationAngle), Space.Self);
+				}
 				break;
 		}
 
@@ -1473,6 +1514,30 @@ public class TrafficLaneManager : MonoBehaviour {
 		}
 	}
 
+	private IEnumerator DoDespawnAllTraffic()
+	{
+		TotalAIVehicles = 0;
+
+		for (int i = 0; i < CarObjects.Count; i++){
+			Destroy (CarObjects [i].VehicleObj);
+
+			// Wait a frame for every 20 vehicles processed
+			if(i % 20 == 0) yield return null;
+		}
+
+		CarObjects.Clear ();
+
+		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadData.Count; RoadID++) {
+			for (int LaneID = 0; LaneID < ActiveMapTrafficData.RoadData [RoadID].Lanes.Count; LaneID++) {
+				TrafficLaneData CurLane = ActiveMapTrafficData.RoadData [RoadID].Lanes [LaneID];
+
+				CurLane.ActiveAIVehicles.Clear ();
+				CurLane.TotalActiveAIVehicles = 0;
+				CurLane.TotalInactiveAIVehicles = 0;
+			}
+		}
+	}
+
 	public bool CanJoinLane(TrafficLaneData NewLane, AIVehicleLaneData CurVehicleLaneData, float CarDistance, bool IsRoadChange = false)
 	{
 		// Only allow 1 vehicle on an intersection at once (because lanes cross over each other at intersections)
@@ -1551,10 +1616,6 @@ public class TrafficLaneManager : MonoBehaviour {
 	{
 		return new Vector3 (Input.x, CustomY, Input.y);
 	}
-
-	public enum BlockageType { Player, AI, PlayerSiren, None }
-
-	private float LaneWidth = 2f;
 
 	// Test for any vehicles within a certain range of progress in the selected lane
 	public BlockageType IsVehicleInProgress(TrafficLaneData SelectedLane, float MinProgress, int CalculationMode = 0, float DistanceMultiplier = 1f)
