@@ -1,4 +1,4 @@
-﻿// Version 4.2
+﻿// Version 4.4
 
 using System.Collections;
 using System.Collections.Generic;
@@ -802,43 +802,49 @@ public class TrafficLaneManager : MonoBehaviour {
 
 		float DeltaTime = Time.deltaTime;
 
-		// Update the progress of AI vehicles in the road lanes
-		for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
-			TrafficRoadData CurRoad = ActiveMapTrafficData.RoadData[RoadID];
+		if(UpdateMovementOn == UpdateModes.Update || UpdateCalculationsOn == UpdateModes.Update){
+			// Update the progress of AI vehicles in the road lanes
+			for (int RoadID = 0; RoadID < ActiveMapTrafficData.RoadCount; RoadID++) {
+				TrafficRoadData CurRoad = ActiveMapTrafficData.RoadData[RoadID];
 
-			// Update the movement of all AI inside lanes of this road
-			UpdateAIMovement (ActiveMapTrafficData.RoadData[RoadID], DeltaTime);
+				if(UpdateCalculationsOn == UpdateModes.Update){
+					// Update the movement of all AI inside lanes of this road
+					UpdateAIMovement (ActiveMapTrafficData.RoadData[RoadID], DeltaTime);
+				}
 
-			bool IsRoadNearPlayer = true; // This is set to false and we stop evaluating lanes and vehicles in the lane once a single car is not in calculation mode 2 or less on this road
+				if(UpdateMovementOn == UpdateModes.Update){
+					bool IsRoadNearPlayer = true; // This is set to false and we stop evaluating lanes and vehicles in the lane once a single car is not in calculation mode 2 or less on this road
 
-			// Update the movement of all AI inside lanes of this road
-			for(int LaneID = 0; LaneID < CurRoad.Lanes.Count && IsRoadNearPlayer; LaneID++)
-			{
-				TrafficLaneData CurLane = CurRoad.Lanes[LaneID];
+					// Update the movement of all AI inside lanes of this road
+					for(int LaneID = 0; LaneID < CurRoad.Lanes.Count && IsRoadNearPlayer; LaneID++)
+					{
+						TrafficLaneData CurLane = CurRoad.Lanes[LaneID];
 
-				for(int VehicleID = 0; VehicleID < CurLane.TotalActiveAIVehicles && IsRoadNearPlayer; VehicleID++)
-				{
-					AIVehicleLaneData CurVehicle = CurLane.ActiveAIVehicles[VehicleID];
+						for(int VehicleID = 0; VehicleID < CurLane.TotalActiveAIVehicles && IsRoadNearPlayer; VehicleID++)
+						{
+							AIVehicleLaneData CurVehicle = CurLane.ActiveAIVehicles[VehicleID];
 
-					if(CurVehicle.CalculationMode <= 2){
-						VehicleTrafficData CurCarData = CarObjects[CurVehicle.VehicleID];
+							if(CurVehicle.CalculationMode <= 2){
+								VehicleTrafficData CurCarData = CarObjects[CurVehicle.VehicleID];
 
-						// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
-						if(CurCarData.IsOnRoad || CurCarData.IsAllowedOffRoadMovement){
-							// If the wanted position is very far from the target move it instantly without interpolation
-							if((TrafficActionWhenFar == ActionWhenFar.MoveInactiveUnderground && CurCarData.VehicleRigidbody.position != DespawnCarPosition) || (TrafficActionWhenFar == ActionWhenFar.DisableGameObject  && CurCarData.VehicleRigidbody.position != DespawnCarPosition)){
-								// Move the vehicle rigidbody to the wanted position
-								if(CurCarData.IsAllowedOffRoadMovement || CurCarData.IsChangingLane){
-									CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset;//(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset, 155f * Time.deltaTime));
-								} else {
-									CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition; //(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 155f * Time.deltaTime));
+								// If a car is not marked as IsOnRoad then it has been hit and is sitting with hazards enabled
+								if(CurCarData.IsOnRoad || CurCarData.IsAllowedOffRoadMovement){
+									// If the wanted position is very far from the target move it instantly without interpolation
+									if((TrafficActionWhenFar == ActionWhenFar.MoveInactiveUnderground && CurCarData.VehicleRigidbody.position != DespawnCarPosition) || (TrafficActionWhenFar == ActionWhenFar.DisableGameObject  && CurCarData.VehicleRigidbody.position != DespawnCarPosition)){
+										// Move the vehicle rigidbody to the wanted position
+										if(CurCarData.IsAllowedOffRoadMovement || CurCarData.IsChangingLane){
+											CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset;//(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition + CurCarData.LaneChangePositionOffset, 155f * Time.deltaTime));
+										} else {
+											CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition; //(Vector3.MoveTowards(CurCarData.VehicleRigidbody.position, CurCarData.LastTargetPosition, 155f * Time.deltaTime));
+										}
+									} else {
+										CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
+									}
 								}
 							} else {
-								CurCarData.VehicleRigidbody.transform.position = CurCarData.LastTargetPosition;
+								IsRoadNearPlayer = !ShortRoadOptimization;
 							}
 						}
-					} else {
-						IsRoadNearPlayer = !ShortRoadOptimization;
 					}
 				}
 			}

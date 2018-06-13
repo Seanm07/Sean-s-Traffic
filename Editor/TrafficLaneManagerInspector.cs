@@ -8,7 +8,7 @@ public class TrafficLaneManagerInspector : Editor {
 
 	public override void OnInspectorGUI()
 	{
-		EditorGUILayout.HelpBox("Large scale mobile friendly GTA style traffic system\nCreated by Sean McManus of i6 Media (Version 4.3)\nHover over properties below for more information!", MessageType.Info);
+		EditorGUILayout.HelpBox("Large scale mobile friendly GTA style traffic system\nCreated by Sean McManus of i6 Media (Version 4.4)\nHover over properties below for more information!", MessageType.Info);
 
 		// Hidden in the context menu because I know devs will press this, get confused then ask me for help
 		//if(GUILayout.Button("Ungroup All Lanes of Specific Map"))
