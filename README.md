@@ -1,9 +1,9 @@
 #### Self git push notes:
-cd "<Location to the Sean-s-Traffic folder>"
-git init
-git add *
-git commit -m "Version x.x"
-git push origin master
+- cd "Location to the Sean-s-Traffic folder"
+- git init
+- git add *
+- git commit -m "Version x.x"
+- git push origin master
 
 # Sean's Traffic System Setup Guide
 
