@@ -798,7 +798,7 @@ public class TrafficLaneManager : MonoBehaviour {
 		RaycastsThisFrame = 0;
 
 		// Scale the max raycasts per frame because if there's a LOT of AI vehicles we need to work harder to keep them aligned with the ground
-		MaxRaycastsPerFrame = Mathf.CeilToInt(((float)(CalcMode0Count + CalcMode1Count + CalcMode2Count) / 10f) * ((CachedGraphicsTier == GraphicsTier.Tier1) ? 1.75f : 2f));
+		MaxRaycastsPerFrame = Mathf.CeilToInt(((float)(CalcMode0Count + CalcMode1Count + CalcMode2Count) / 5f) * ((CachedGraphicsTier == GraphicsTier.Tier1) ? 1.75f : 2f));
 
 		float DeltaTime = Time.deltaTime;
 
@@ -1231,7 +1231,7 @@ public class TrafficLaneManager : MonoBehaviour {
 								if(ForceRaycast){// || CalcMode == 0){
 									WantedVehiclePosition.y = Hit.point.y; // This will only be called when we're forcing a raycast (happens when spawning, switching lanes or as the calculation mode changes)
 								} else {
-									WantedVehiclePosition.y = Mathf.MoveTowards(CurCarData.LastYPoint, Hit.point.y, 200f * DeltaTime);
+									WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, Hit.point.y, 10f * DeltaTime);
 								}
 
 								CurCarData.TimeSinceLastValidRaycast = 0f;
@@ -1252,7 +1252,7 @@ public class TrafficLaneManager : MonoBehaviour {
 						if(CurCarData.IsOnRoad)
 							CurCarData.VehicleObj.transform.up = CurCarData.RaycastUpVector;
 
-						WantedVehiclePosition.y = Mathf.MoveTowards(CurCarData.LastYPoint, CurCarData.RaycastYPoint, 200f * DeltaTime);
+						WantedVehiclePosition.y = Mathf.Lerp(CurCarData.LastYPoint, CurCarData.RaycastYPoint, 10f * DeltaTime);
 						CurCarData.LastYPoint = WantedVehiclePosition.y;
 					}
 				}
